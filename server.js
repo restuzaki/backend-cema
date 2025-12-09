@@ -10,22 +10,20 @@ const projectRoutes = require("./routes/projectRoute");
 const taskRoutes = require("./routes/taskRoute");
 const startChatBot = require("./services/chatService");
 
+const serviceAccount = require("./cema-web-firebase-adminsdk-fbsvc-7db7e59049.json");
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 process.env.TZ = "Asia/Jakarta";
 
-const serviceAccount = require("./cema-web-firebase-adminsdk-fbsvc-7db7e59049.json");
+connectDB();
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL:
-    "https://cema-web-default-rtdb.asia-southeast1.firebasedatabase.app",
+  databaseURL: "https://cema-web-default-rtdb.asia-southeast1.firebasedatabase.app",
 });
 const db = admin.database();
 
-connectDB();
-
-//Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
