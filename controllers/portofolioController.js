@@ -19,19 +19,19 @@ exports.getPortfolioById = (req, res) => {
 };
 
 exports.createPortfolio = (req, res) => {
-  const { category, date, description } = req.body;
+  const { category, endDate, description } = req.body;
 
-  if (!category || !date || !description)
+  if (!category || !endDate || !description)
     return res.status(400).json({
-      message: "Category, date, and description are required"
+      message: "Category, end date, and description are required"
     });
 
   const newPortfolio = {
     id: portfolioData.length ? portfolioData[portfolioData.length - 1].id + 1 : 1,
     category,
-    date,
+    endDate,
     description,
-    image: req.file ? req.file.filename : null
+    photoUrl: req.file ? req.file.filename : null
   };
 
   portfolioData.push(newPortfolio);
@@ -50,10 +50,10 @@ exports.updatePortfolio = (req, res) => {
   if (!item) return res.status(404).json({ message: "Portfolio not found" });
 
   item.category = req.body.category || item.category;
-  item.date = req.body.date || item.date;
+  item.endDate = req.body.endDate || item.endDate;
   item.description = req.body.description || item.description;
 
-  if (req.file) item.image = req.file.filename;
+  if (req.file) item.photoUrl = req.file.filename;
 
   res.json({
     status: "success",
