@@ -6,10 +6,12 @@ const admin = require("firebase-admin");
 
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoute");
+const projectRoutes = require("./routes/projectRoute");
+const taskRoutes = require("./routes/taskRoute");
 const startChatBot = require("./services/chatService");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 process.env.TZ = "Asia/Jakarta";
 
 const serviceAccount = require("./cema-web-firebase-adminsdk-fbsvc-7db7e59049.json");
@@ -28,6 +30,8 @@ app.use(cors());
 app.use(bodyParser.json());
 
 app.use("/api", authRoutes);
+app.use("/api", projectRoutes);
+app.use("/api", taskRoutes);
 
 startChatBot(db);
 
