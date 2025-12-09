@@ -1,55 +1,41 @@
 const mongoose = require('mongoose');
 
-const projectSchema = new mongoose.Schema({
-    id: {
-        type: String,
-        required: true,
-        unique: true
-    },
-    name: {
-        type: String,
-        required: true
-    },
-    clientId: {
-        type: String,
-        required: true
-    },
-    clientName: {
-        type: String,
-        required: true
-    },
+const ProjectSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    description: { type: String },
+
+    // Client Data
+    clientId: { type: String, ref: 'User', required: true },
+    clientName: { type: String, required: true },
+
     status: {
         type: String,
-        required: true,
-        enum: ['Not Started', 'In Progress', 'Completed', 'On Hold', 'Cancelled'], // Common defaults, adjustable
-        default: 'Not Started'
+        enum: ['planning', 'active', 'on_hold', 'completed', 'cancelled'],
+        default: 'planning',
+        required: true
     },
+
     serviceType: {
         type: String,
+        enum: ['interior', 'architecture', 'renovation', 'consultation'],
         required: true
     },
-    startDate: {
-        type: Date,
-        required: true
-    },
-    endDate: {
-        type: Date
-    },
-    progress: {
-        type: Number,
-        required: true,
-        min: 0,
-        max: 100,
-        default: 0
-    },
-    budget: {
-        type: Number
-    },
-    description: {
-        type: String
+
+    progress: { type: Number, default: 0, min: 0, max: 100 },
+    budget: { type: Number },
+
+    startDate: { type: Date, required: true },
+    endDate: { type: Date },
+
+    projectManager: { type: String, ref: 'User' },
+    teamMembers: [{ type: String, ref: 'User' }],
+
+    location: {
+        address: String,
+        coordinates: { lat: Number, lng: Number }
     }
 }, {
-    timestamps: true // Handles createdAt and updatedAt
+    timestamps: true
 });
 
-module.exports = mongoose.model('Project', projectSchema);
+module.exports = mongoose.model('Project', ProjectSchema);
