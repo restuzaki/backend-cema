@@ -1,4 +1,6 @@
 const Project = require("../models/project");
+const ROLES = require("../config/roles");
+const PROJECTIONS = require("../config/projections");
 
 // Get all projects
 exports.getAllProjects = async (req, res) => {
@@ -21,7 +23,15 @@ exports.getAllProjects = async (req, res) => {
 // Get project by ID
 exports.getProjectById = async (req, res) => {
   try {
-    const project = await Project.findOne({ id: req.params.id });
+    const user = req.user;
+    let query = Project.findOne({ id: req.params.id });
+
+    // Apply Field Limiting for Clients
+    if (user.role === ROLES.CLIENT) {
+      query = query.select(PROJECTIONS.PROJECT.CLIENT_VIEW);
+    }
+
+    const project = await query;
 
     if (!project) {
       return res.status(404).json({
@@ -46,7 +56,17 @@ exports.getProjectById = async (req, res) => {
 // Get projects by client ID
 exports.getProjectsByClientId = async (req, res) => {
   try {
-    const projects = await Project.find({ clientId: req.params.clientId });
+    const { clientId } = req.params;
+    const user = req.user;
+
+    let query = Project.find({ client_id: clientId });
+
+    // Apply Field Limiting for Clients
+    if (user.role === ROLES.CLIENT) {
+      query = query.select(PROJECTIONS.PROJECT.CLIENT_VIEW);
+    }
+
+    const projects = await query;
 
     res.json({
       status: "success",
@@ -65,7 +85,6 @@ exports.getProjectsByClientId = async (req, res) => {
 // Create new project
 exports.createProject = async (req, res) => {
   const {
-    id,
     name,
     clientId,
     clientName,
@@ -79,35 +98,26 @@ exports.createProject = async (req, res) => {
   } = req.body;
 
   // Validate required fields
-  if (!id || !name || !clientId || !clientName || !serviceType || !startDate) {
+  if (!name || !clientId || !clientName || !serviceType || !startDate) {
     return res.status(400).json({
       status: "error",
       error:
-        "Required fields: id, name, clientId, clientName, serviceType, startDate",
+        "Required fields: name, clientId, clientName, serviceType, startDate",
     });
   }
 
   try {
-    // Check if project with same ID already exists
-    const existingProject = await Project.findOne({ id });
-    if (existingProject) {
-      return res.status(400).json({
-        status: "error",
-        error: "Project with this ID already exists",
-      });
-    }
-
     const newProject = await Project.create({
-      id,
+      id: `PROJ-${Date.now()}`,
       name,
-      clientId,
+      client_id: clientId, // Map clientId to client_id
       clientName,
-      status: status || "Not Started",
+      status: status || "LEAD", // Default to Valid Enum
       serviceType,
       startDate,
       endDate,
       progress: progress || 0,
-      budget,
+      financials: req.body.financials || { budget_total: budget || 0 }, // Map financials
       description,
     });
 

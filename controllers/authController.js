@@ -1,5 +1,7 @@
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const ROLES = require("../config/roles");
 
 exports.register = async (req, res) => {
   const { email, password } = req.body;
@@ -21,7 +23,7 @@ exports.register = async (req, res) => {
     const user = await User.create({
       email,
       password: hashedPassword,
-      role: "user",
+      role: ROLES.CLIENT, 
     });
 
     console.log(`User baru terdaftar: ${email}`);
@@ -42,14 +44,24 @@ exports.login = async (req, res) => {
       return res.json({ status: "error", error: "Email atau password salah" });
     }
 
+    // USE JWT TO SIMULATE ABAC POLICY (CAN BE CHANGED LATER)
     if (await bcrypt.compare(password, user.password)) {
       console.log(`User login: ${email}`);
+      const token = jwt.sign(
+        { id: user._id, email: user.email, role: user.role },
+        process.env.JWT_SECRET || "cema-secret-key",
+        { expiresIn: "24h" }
+      );
+
       return res.json({
         status: "ok",
         message: "Login berhasil",
+        token,
         role: user.role,
+        id: user._id,
       });
     }
+    // ------------------------------------------------------
 
     res.json({ status: "error", error: "Email atau password salah" });
   } catch (err) {

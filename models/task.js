@@ -3,6 +3,7 @@ const { Schema } = mongoose;
 
 const TaskSchema = new Schema(
   {
+    id: { type: String, required: true, unique: true },
     project_id: { type: Schema.Types.ObjectId, ref: "Project", required: true },
     assigned_to: [{ type: Schema.Types.ObjectId, ref: "User" }],
     created_by: { type: Schema.Types.ObjectId, ref: "User" },

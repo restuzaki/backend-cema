@@ -1,4 +1,4 @@
-const { hasPermission } = require("../policies/permissions");
+const { hasPermission } = require("../policies/abacPolicies");
 const Project = require("../models/project");
 const Task = require("../models/task");
 
@@ -9,14 +9,19 @@ const checkPermission = (resourceName, action) => {
       if (!user) return res.status(401).json({ error: "Unauthenticated" });
 
       let data = null;
-      const resourceId = req.params.id || req.body.project_id;
+      // Safe access to body and check for params
+      const resourceId = req.params.id || (req.body && req.body.project_id);
+      const clientIdParam = req.params.clientId;
 
       if (resourceId) {
         let Model;
         if (resourceName === "projects") Model = Project;
         if (resourceName === "tasks") Model = Task;
 
-        data = await Model.findById(resourceId);
+        // Determine lookup method based on resource
+        if (Model) {
+             data = await Model.findOne({ id: resourceId });
+        }
 
         if (!data) return res.status(404).json({ error: "Resource not found" });
 
@@ -36,6 +41,9 @@ const checkPermission = (resourceName, action) => {
             .filter((id) => id != null)
             .map((id) => id.toString());
         }
+      } else if (clientIdParam) {
+        // Mock data for Client List route to satisfy ABAC policy (user.id === project.client_id)
+        data = { client_id: clientIdParam };
       }
 
       const isAllowed = hasPermission(user, resourceName, action, data);
