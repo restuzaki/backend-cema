@@ -4,6 +4,12 @@ const POLICIES = {
   [ROLES.ADMIN]: {
     projects: { view: true, create: true, update: true, delete: true },
     tasks: { view: true, create: true, update: true, approve: true },
+    schedules: { view: true, create: true, update: true, delete: true },
+    quiz_questions: { view: true, create: true, update: true, delete: true },
+    materials: { view: true, create: true, update: true, delete: true },
+    calculator_settings: { view: true, create: true, update: true, delete: true },
+    services: { view: true, create: true, update: true, delete: true },
+    portfolios: { view: true, create: true, update: true, delete: true },
   },
   [ROLES.PROJECT_MANAGER]: {
     projects: {
@@ -16,6 +22,16 @@ const POLICIES = {
       create: true,
       approve: true, // Logic handled in middleware/controller to ensure ownership
     },
+    schedules: {
+      view: (user, schedule) => schedule.manager_id === user.id,
+      create: true,
+      update: (user, schedule) => schedule.manager_id === user.id,
+    },
+    quiz_questions: { view: true, create: false, update: false },
+    materials: { view: true, create: false, update: false },
+    calculator_settings: { view: true, create: false, update: false },
+    services: { view: true, create: false, update: false },
+    portfolios: { view: true, create: false, update: false },
   },
   [ROLES.TEAM_MEMBER]: {
     projects: {
@@ -33,6 +49,12 @@ const POLICIES = {
         task.assigned_to?.some((id) => id.toString() === user.id),
       approve: false,
     },
+    schedules: { view: false, create: false, update: false },
+    quiz_questions: { view: true, create: false, update: false },
+    materials: { view: true, create: false, update: false },
+    calculator_settings: { view: false, create: false, update: false },
+    services: { view: true, create: false, update: false },
+    portfolios: { view: true, create: false, update: false },
   },
   [ROLES.CLIENT]: {
     projects: {
@@ -41,6 +63,16 @@ const POLICIES = {
       update: false,
     },
     tasks: { view: false, create: false, update: false, approve: false },
+    schedules: {
+      view: (user, schedule) => schedule.client_id === user.id,
+      create: true,
+      update: (user, schedule) => schedule.client_id === user.id,
+    },
+    quiz_questions: { view: true, create: false, update: false },
+    materials: { view: true, create: false, update: false },
+    calculator_settings: { view: true, create: false, update: false },
+    services: { view: true, create: false, update: false },
+    portfolios: { view: true, create: false, update: false },
   },
 };
 

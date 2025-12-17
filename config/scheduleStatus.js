@@ -1,0 +1,8 @@
+const SCHEDULE_STATUS = {
+  UPCOMING: "UPCOMING",
+  ONGOING: "ONGOING",
+  DONE: "DONE",
+  DELETED: "DELETED",
+};
+
+module.exports = SCHEDULE_STATUS;
