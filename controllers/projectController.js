@@ -1,4 +1,6 @@
 const Project = require("../models/project");
+const ROLES = require("../config/roles");
+const PROJECTIONS = require("../config/projections");
 
 // Get all projects
 exports.getAllProjects = async (req, res) => {
@@ -46,7 +48,17 @@ exports.getProjectById = async (req, res) => {
 // Get projects by client ID
 exports.getProjectsByClientId = async (req, res) => {
   try {
-    const projects = await Project.find({ clientId: req.params.clientId });
+    const { clientId } = req.params;
+    const user = req.user;
+
+    let query = Project.find({ client_id: clientId });
+
+    // Apply Field Limiting for Clients
+    if (user.role === ROLES.CLIENT) {
+      query = query.select(PROJECTIONS.PROJECT.CLIENT_VIEW);
+    }
+
+    const projects = await query;
 
     res.json({
       status: "success",
@@ -79,35 +91,35 @@ exports.createProject = async (req, res) => {
   } = req.body;
 
   // Validate required fields
-  if (!id || !name || !clientId || !clientName || !serviceType || !startDate) {
+  if (!name || !clientId || !clientName || !serviceType || !startDate) {
     return res.status(400).json({
       status: "error",
       error:
-        "Required fields: id, name, clientId, clientName, serviceType, startDate",
+        "Required fields: name, clientId, clientName, serviceType, startDate",
     });
   }
 
   try {
     // Check if project with same ID already exists
-    const existingProject = await Project.findOne({ id });
-    if (existingProject) {
-      return res.status(400).json({
-        status: "error",
-        error: "Project with this ID already exists",
-      });
-    }
+    // const existingProject = await Project.findOne({ id });
+    // if (existingProject) {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     error: "Project with this ID already exists",
+    //   });
+    // }
 
     const newProject = await Project.create({
-      id,
+      id: id || `PROJ-${Date.now()}`, 
       name,
-      clientId,
+      client_id: clientId, // Map clientId to client_id
       clientName,
-      status: status || "Not Started",
+      status: status || "LEAD", // Default to Valid Enum
       serviceType,
       startDate,
       endDate,
       progress: progress || 0,
-      budget,
+      financials: req.body.financials || { budget_total: budget || 0 }, // Map financials
       description,
     });
 

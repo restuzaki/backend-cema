@@ -1,9 +1,11 @@
-const ROLES = {
-  ADMIN: {
+const ROLES = require("../config/roles");
+
+const POLICIES = {
+  [ROLES.ADMIN]: {
     projects: { view: true, create: true, update: true, delete: true },
     tasks: { view: true, create: true, update: true, approve: true },
   },
-  PROJECT_MANAGER: {
+  [ROLES.PROJECT_MANAGER]: {
     projects: {
       view: (user, project) => project.manager_id === user.id,
       create: true,
@@ -15,7 +17,7 @@ const ROLES = {
       approve: true, // Logic handled in middleware/controller to ensure ownership
     },
   },
-  TEAM_MEMBER: {
+  [ROLES.TEAM_MEMBER]: {
     projects: {
       view: (user, project) =>
         project.team_members &&
@@ -32,10 +34,10 @@ const ROLES = {
       approve: false,
     },
   },
-  CLIENT: {
+  [ROLES.CLIENT]: {
     projects: {
       view: (user, project) => project.client_id === user.id,
-      create: false,
+      create: true,
       update: false,
     },
     tasks: { view: false, create: false, update: false, approve: false },
@@ -43,7 +45,7 @@ const ROLES = {
 };
 
 function hasPermission(user, resource, action, data) {
-  const rolePermissions = ROLES[user.role];
+  const rolePermissions = POLICIES[user.role];
   if (!rolePermissions) return false;
 
   const resourcePermissions = rolePermissions[resource];
