@@ -8,13 +8,13 @@ const ProjectSchema = new Schema(
 		name: { type: String, required: true },
 		description: { type: String },
 
-		admin_id: { type: Schema.Types.ObjectId, ref: "User" },
+		admin_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
 
 		client_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
 		clientName: { type: String, required: true },
 
-		manager_id: { type: Schema.Types.ObjectId, ref: "User" },
-		managerName: { type: String },
+		manager_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
+		managerName: { type: String, required: true },
 
 		team_members: [{ type: Schema.Types.ObjectId, ref: "User" }],
 

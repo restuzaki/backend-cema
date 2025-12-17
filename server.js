@@ -8,6 +8,11 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoute");
 const projectRoutes = require("./routes/projectRoute");
 const taskRoutes = require("./routes/taskRoute");
+const scheduleRoutes = require("./routes/scheduleRoute");
+const quizRoutes = require("./routes/quizRoute");
+const calculatorRoutes = require("./routes/calculatorRoute");
+const serviceRoutes = require("./routes/serviceRoute");
+const portfolioRoutes = require("./routes/portfolioRoute");
 const startChatBot = require("./services/chatService");
 
 const serviceAccount = require("./cema-web-firebase-adminsdk-fbsvc-7db7e59049.json");
@@ -30,6 +35,11 @@ app.use(bodyParser.json());
 app.use("/api", authRoutes);
 app.use("/api", projectRoutes);
 app.use("/api", taskRoutes);
+app.use("/api", scheduleRoutes);
+app.use("/api", quizRoutes);
+app.use("/api", calculatorRoutes);
+app.use("/api", serviceRoutes);
+app.use("/api", portfolioRoutes);
 
 startChatBot(db);
 

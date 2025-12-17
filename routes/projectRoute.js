@@ -11,9 +11,6 @@ router.get("/projects", authMiddleware, checkPermission("projects", "view"), pro
 // Get project by ID
 router.get("/projects/:id", authMiddleware, checkPermission("projects", "view"), projectController.getProjectById);
 
-// Get projects by client ID
-router.get("/projects/client/:clientId", authMiddleware, checkPermission("projects", "view"), projectController.getProjectsByClientId);
-
 // Create new project
 router.post("/projects", authMiddleware, checkPermission("projects", "create"), projectController.createProject);
 
