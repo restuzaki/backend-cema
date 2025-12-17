@@ -33,10 +33,10 @@ exports.createTask = async (req, res) => {
   } = req.body;
 
   // Validate required fields
-  if (!id || !projectId || !title) {
+  if (!projectId || !title) {
     return res.status(400).json({
       status: "error",
-      error: "Required fields: id, projectId, title",
+      error: "Required fields: projectId, title",
     });
   }
 
@@ -51,7 +51,7 @@ exports.createTask = async (req, res) => {
     }
 
     const newTask = await Task.create({
-      id,
+      id: id || `TASK-${Date.now()}`,
       projectId,
       title,
       description,

@@ -18,9 +18,9 @@ const checkPermission = (resourceName, action) => {
         if (resourceName === "projects") Model = Project;
         if (resourceName === "tasks") Model = Task;
 
-        // Ensure Model is valid before using findById
+        // Determine lookup method based on resource
         if (Model) {
-             data = await Model.findById(resourceId);
+             data = await Model.findOne({ id: resourceId });
         }
 
         if (!data) return res.status(404).json({ error: "Resource not found" });

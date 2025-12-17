@@ -23,7 +23,15 @@ exports.getAllProjects = async (req, res) => {
 // Get project by ID
 exports.getProjectById = async (req, res) => {
   try {
-    const project = await Project.findOne({ id: req.params.id });
+    const user = req.user;
+    let query = Project.findOne({ id: req.params.id });
+
+    // Apply Field Limiting for Clients
+    if (user.role === ROLES.CLIENT) {
+      query = query.select(PROJECTIONS.PROJECT.CLIENT_VIEW);
+    }
+
+    const project = await query;
 
     if (!project) {
       return res.status(404).json({
@@ -77,7 +85,6 @@ exports.getProjectsByClientId = async (req, res) => {
 // Create new project
 exports.createProject = async (req, res) => {
   const {
-    id,
     name,
     clientId,
     clientName,
@@ -100,17 +107,8 @@ exports.createProject = async (req, res) => {
   }
 
   try {
-    // Check if project with same ID already exists
-    // const existingProject = await Project.findOne({ id });
-    // if (existingProject) {
-    //   return res.status(400).json({
-    //     status: "error",
-    //     error: "Project with this ID already exists",
-    //   });
-    // }
-
     const newProject = await Project.create({
-      id: id || `PROJ-${Date.now()}`, 
+      id: `PROJ-${Date.now()}`,
       name,
       client_id: clientId, // Map clientId to client_id
       clientName,
