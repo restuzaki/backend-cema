@@ -3,10 +3,43 @@ const router = express.Router();
 
 const portfolioController = require("../controllers/portofolioController");
 
-router.get("/portfolio", portfolioController.getAllPortfolio);
-router.get("/portfolio/:id", portfolioController.getPortfolioById);
-router.post("/portfolio", upload.single("photoUrl"), portfolioController.createPortfolio);
-router.put("/portfolio/:id", upload.single("photoUrl"), portfolioController.updatePortfolio);
-router.delete("/portfolio/:id", portfolioController.deletePortfolio);
+const authMiddleware = require("../middleware/authMiddleware");
+const checkPermission = require("../middleware/abacMiddleware");
+
+//get Portfolio
+router.get(
+  "/portfolio",
+  authMiddleware,
+  checkPermission("portfolios", "view"),
+  portfolioController.getAllPortfolio
+);
+//get Portfolio by id
+router.get(
+  "/portfolio/:id",
+  authMiddleware,
+  checkPermission("portfolios", "view"),
+  portfolioController.getPortfolioById
+);
+//create Portfolio
+router.post(
+  "/portfolio",
+  authMiddleware,
+  checkPermission("portfolios", "create"),
+  portfolioController.createPortfolio
+);
+//update Portfolio
+router.put(
+  "/portfolio/:id",
+  authMiddleware,
+  checkPermission("portfolios", "update"),
+  portfolioController.updatePortfolio
+);
+//delete Portfolio
+router.delete(
+  "/portfolio/:id",
+  authMiddleware,
+  checkPermission("portfolios", "delete"),
+  portfolioController.deletePortfolio
+);
 
 module.exports = router;
