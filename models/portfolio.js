@@ -19,13 +19,13 @@ const PortfolioSchemaDummy = new mongoose.Schema({
     required: true,
   },
   endDate: {
-    type: String,
+    type: Date,
     required: true,
   },
   photoUrl: {
     type: String,
     required: true,
-  }
+  },
 });
 
 module.exports = mongoose.model("Portfolio", PortfolioSchemaDummy);
