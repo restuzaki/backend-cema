@@ -1,80 +1,134 @@
-// portfolioController.js
-let portfolioData = require("../models/portfolio");
+const Portfolio = require("../models/portfolio");
 
-exports.getAllPortfolio = (req, res) => {
-  res.json({
-    status: "success",
-    total: portfolioData.length,
-    data: portfolioData,
-  });
+exports.getAllPortfolio = async (req, res) => {
+  try {
+    const portfolios = await Portfolio.find();
+    res.json({
+      status: "success",
+      total: portfolios.length,
+      data: portfolios,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
-exports.getPortfolioById = (req, res) => {
-  const id = parseInt(req.params.id);
-  const item = portfolioData.find((p) => p.id === id);
-
-  if (!item) return res.status(404).json({ message: "Portfolio not found" });
-
-  res.json({ status: "success", data: item });
+exports.getShownPortfolio = async (req, res) => {
+  try {
+    const portfolios = await Portfolio.find({ isShown: true });
+    res.json({
+      status: "success",
+      total: portfolios.length,
+      data: portfolios,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
-exports.createPortfolio = (req, res) => {
-  const { category, endDate, description } = req.body;
+exports.getPortfolioById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const portfolio = await Portfolio.findOne({ id: id });
 
-  if (!category || !endDate || !description)
-    return res.status(400).json({
-      message: "Category, end date, and description are required",
+    if (!portfolio) {
+      return res.status(404).json({ message: "Portfolio not found" });
+    }
+
+    res.json({ status: "success", data: portfolio });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.createPortfolio = async (req, res) => {
+  try {
+    const { id, displayName, category, endDate, description, isShown } =
+      req.body;
+
+    // Validate required fields
+    if (!id || !displayName || !category || !endDate || !description) {
+      return res.status(400).json({
+        message:
+          "ID, Display Name, Category, End Date, and Description are required",
+      });
+    }
+
+    const newPortfolio = new Portfolio({
+      id,
+      displayName, // Added displayName as it is required in the schema
+      category,
+      endDate,
+      description,
+      isShown: isShown !== undefined ? isShown : true, // Default to true if not provided
+      photoUrl: req.file
+        ? req.file.filename
+        : req.body.photoUrl || "default.jpg",
     });
 
-  const newPortfolio = {
-    id: portfolioData.length
-      ? portfolioData[portfolioData.length - 1].id + 1
-      : 1,
-    category,
-    endDate,
-    description,
-    photoUrl: req.file ? req.file.filename : null,
-  };
+    const savedPortfolio = await newPortfolio.save();
 
-  portfolioData.push(newPortfolio);
-
-  res.json({
-    status: "success",
-    message: "Portfolio created",
-    data: newPortfolio,
-  });
+    res.status(201).json({
+      status: "success",
+      message: "Portfolio created",
+      data: savedPortfolio,
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res
+        .status(400)
+        .json({ message: "Portfolio with this ID already exists" });
+    }
+    res.status(500).json({ message: error.message });
+  }
 };
 
-exports.updatePortfolio = (req, res) => {
-  const id = parseInt(req.params.id);
-  const item = portfolioData.find((p) => p.id === id);
+exports.updatePortfolio = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = {
+      ...req.body,
+    };
 
-  if (!item) return res.status(404).json({ message: "Portfolio not found" });
+    // If a file is uploaded, update the photoUrl
+    if (req.file) {
+      updateData.photoUrl = req.file.filename;
+    }
 
-  item.category = req.body.category || item.category;
-  item.endDate = req.body.endDate || item.endDate;
-  item.description = req.body.description || item.description;
+    const updatedPortfolio = await Portfolio.findOneAndUpdate(
+      { id: id },
+      updateData,
+      { new: true, runValidators: true }
+    );
 
-  if (req.file) item.photoUrl = req.file.filename;
+    if (!updatedPortfolio) {
+      return res.status(404).json({ message: "Portfolio not found" });
+    }
 
-  res.json({
-    status: "success",
-    message: "Portfolio updated",
-    data: item,
-  });
+    res.json({
+      status: "success",
+      message: "Portfolio updated",
+      data: updatedPortfolio,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
-exports.deletePortfolio = (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = portfolioData.findIndex((p) => p.id === id);
+exports.deletePortfolio = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletedPortfolio = await Portfolio.findOneAndDelete({ id: id });
 
-  if (index === -1)
-    return res.status(404).json({ message: "Portfolio not found" });
+    if (!deletedPortfolio) {
+      return res.status(404).json({ message: "Portfolio not found" });
+    }
 
-  portfolioData.splice(index, 1);
-
-  res.json({
-    status: "success",
-    message: "Portfolio deleted",
-  });
+    res.json({
+      status: "success",
+      message: "Portfolio deleted",
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
