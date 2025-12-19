@@ -23,7 +23,7 @@ exports.register = async (req, res) => {
     const user = await User.create({
       email,
       password: hashedPassword,
-      role: ROLES.CLIENT, 
+      role: ROLES.CLIENT,
     });
 
     console.log(`User baru terdaftar: ${email}`);
@@ -67,5 +67,27 @@ exports.login = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.json({ status: "error", error: "Server error" });
+  }
+};
+
+exports.refreshToken = async (req, res) => {
+  try {
+    const user = req.user; // Decoded from authMiddleware
+
+    // Create a new token with fresh expiry
+    const newToken = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET || "cema-secret-key",
+      { expiresIn: "24h" }
+    );
+
+    res.json({
+      status: "ok",
+      message: "Token duration reset",
+      token: newToken,
+    });
+  } catch (error) {
+    console.error("Refresh Token Error:", error);
+    res.status(500).json({ status: "error", error: "Failed to refresh token" });
   }
 };

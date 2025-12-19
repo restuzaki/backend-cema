@@ -26,6 +26,10 @@ const PortfolioSchemaDummy = new mongoose.Schema({
     type: String,
     required: true,
   },
+  isShown: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 module.exports = mongoose.model("Portfolio", PortfolioSchemaDummy);

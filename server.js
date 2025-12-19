@@ -13,6 +13,7 @@ const quizRoutes = require("./routes/quizRoute");
 const calculatorRoutes = require("./routes/calculatorRoute");
 const serviceRoutes = require("./routes/serviceRoute");
 const portfolioRoutes = require("./routes/portfolioRoute");
+const userRoutes = require("./routes/userRoute");
 const startChatBot = require("./services/chatService");
 
 const serviceAccount = require("./cema-web-firebase-adminsdk-fbsvc-7db7e59049.json");
@@ -25,7 +26,8 @@ connectDB();
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://cema-web-default-rtdb.asia-southeast1.firebasedatabase.app",
+  databaseURL:
+    "https://cema-web-default-rtdb.asia-southeast1.firebasedatabase.app",
 });
 const db = admin.database();
 
@@ -40,6 +42,7 @@ app.use("/api", quizRoutes);
 app.use("/api", calculatorRoutes);
 app.use("/api", serviceRoutes);
 app.use("/api", portfolioRoutes);
+app.use("/api/users", userRoutes);
 
 startChatBot(db);
 

@@ -9,9 +9,39 @@ exports.getAllServices = async (req, res) => {
   }
 };
 
+exports.getShownServices = async (req, res) => {
+  try {
+    const services = await ServiceSchema.find({ isShown: true });
+    res.json({ status: "ok", data: services });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: error.message });
+  }
+};
+
 exports.createService = async (req, res) => {
   try {
-    const newService = await ServiceSchema.create(req.body);
+    const {
+      title,
+      category,
+      price,
+      image,
+      description,
+      features,
+      isPopular,
+      isShown,
+    } = req.body;
+
+    const newService = await ServiceSchema.create({
+      title,
+      category,
+      price,
+      image,
+      description,
+      features,
+      isPopular: isPopular !== undefined ? isPopular : false,
+      isShown: isShown !== undefined ? isShown : true,
+    });
+
     res.json({ status: "ok", data: newService });
   } catch (error) {
     res.status(500).json({ status: "error", message: error.message });

@@ -13,6 +13,10 @@ router.get(
   checkPermission("portfolios", "view"),
   portfolioController.getAllPortfolio
 );
+
+// get shown Portfolio
+router.get("/portfolio/shown", portfolioController.getShownPortfolio);
+
 //get Portfolio by id
 router.get(
   "/portfolio/:id",
