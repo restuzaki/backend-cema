@@ -18,45 +18,65 @@ function isRecent(timestamp) {
   return diff < 60000;
 }
 
+async function getChatHistory(messagesRef) {
+  try {
+    const snapshot = await messagesRef.limitToLast(10).once("value");
+    let history = "";
+
+    snapshot.forEach((child) => {
+      const msg = child.val();
+
+      if (msg.text && !msg.text.includes("Maaf, saya sedang mengalami")) {
+        const role = msg.sender === "user" ? "User" : "Customer Service";
+        history += `${role}: ${msg.text}\n`;
+      }
+    });
+    return history;
+  } catch (error) {
+    console.error("Gagal mengambil history:", error);
+    return "";
+  }
+}
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-async function generateAIResponse(text) {
+async function generateAIResponse(currentMessage, historyContext) {
   try {
     const prompt = `
-    Peran: Customer Service AI untuk Cema Design(Interior & Arsitektur).
+    Peran: Customer Service AI untuk Cema Design (Interior & Arsitektur).
     Gaya Bahasa: Sopan, Profesional, dan Bahasa Indonesia yang baik.
 
     PENTING - ATURAN SAPAAN:
-    DILARANG KERAS menggunakan sapaan waktu (seperti "Selamat Pagi", "Selamat Siang", "Selamat Sore", atau "Selamat Malam"). Gunakan sapaan netral (contoh: "Halo", "Selamat Datang").
+    1. DILARANG KERAS menggunakan sapaan waktu (seperti "Selamat Pagi", "Selamat Siang", "Selamat Malam"). 
+    2. Cukup gunakan "Halo" atau "Selamat Datang".
+
+    KONTEKS PERCAKAPAN TERAKHIR:
+    ${historyContext}
 
     LOGIKA RESPON:
-    1. JIKA PESAN PERTAMA:
-    - Sapa user (Netral).
-    - Informasikan bahwa admin sedang diluar jam kerja (OOO).
-    - Katakan bahwa AI akan berusaha membantu sebaik mungkin.
-    - Tawarkan bantuan terkait layanan Cema Design.
+    - Jika ini pesan pertama (history kosong/sedikit): Sapa netral, infokan admin OFFLINE, tawarkan bantuan.
+    - Jika ini pesan lanjutan (sedang ngobrol): JANGAN mengulang intro "Admin offline". Langsung jawab pertanyaan user secara ringkas & solutif.
 
-    2. PESAN SELANJUTNYA (Follow-up):
-    - JANGAN mengulang intro di atas.
-    - Langsung jawab poin penting dari pertanyaan user dengan ringkas dan solutif.
+    User Bertanya: "${currentMessage}"
     
-    Pertanyaan user: "${text}"
-    `;
+    Jawaban Kamu (CS):
+    `.trim();
+
     const result = await model.generateContent(prompt);
     const response = await result.response;
     return response.text();
   } catch (error) {
     console.error("Error generating AI response:", error);
-    return "Maaf, saya sedang mengalami gangguan sistem.";
+    return "Maaf, saya sedang mengalami gangguan sistem sementara.";
   }
 }
 
 const startChatBot = (db) => {
-  console.log("🤖 Bot AI Monitoring Chat Started...");
+  console.log("🤖 Bot AI Monitoring Chat Started... (Optimized Mode)");
   const chatsRef = db.ref("chats");
 
-  chatsRef.on("child_added", (sessionSnapshot) => {
+  chatsRef.limitToLast(50).on("child_added", (sessionSnapshot) => {
     const sessionId = sessionSnapshot.key;
     const messagesRef = db.ref(`chats/${sessionId}/messages`);
 
@@ -68,12 +88,14 @@ const startChatBot = (db) => {
         !isWorkingHours() &&
         isRecent(msg.timestamp)
       ) {
-        const aiText = await generateAIResponse(msg.text);
+        const historyContext = await getChatHistory(messagesRef);
+
+        const aiText = await generateAIResponse(msg.text, historyContext);
         const now = new Date();
 
         await messagesRef.push({
           sender: "agent",
-          text: aiText + "\n(🤖 AI Response - Diluar Jam Kerja)",
+          text: aiText + " (🤖 AI Response - Diluar Jam Kerja)",
           time: now.toLocaleTimeString("id-ID", {
             hour: "2-digit",
             minute: "2-digit",
@@ -113,7 +135,11 @@ const startChatBot = (db) => {
 
         if (!isWorkingHours()) {
           try {
-            const newAiResponse = await generateAIResponse(msg.text);
+            const historyContext = await getChatHistory(messagesRef);
+            const newAiResponse = await generateAIResponse(
+              msg.text,
+              historyContext
+            );
             const now = new Date();
 
             await messagesRef.push({
@@ -130,7 +156,7 @@ const startChatBot = (db) => {
               lastMessage: "🤖 " + newAiResponse.substring(0, 30) + "...",
             });
 
-            console.log("Jawaban AI diperbarui.");
+            console.log("Jawaban AI diperbarui (Edited).");
           } catch (error) {
             console.error("Error generating new AI response:", error);
           }
