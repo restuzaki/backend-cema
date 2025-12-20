@@ -73,8 +73,10 @@ async function generateAIResponse(currentMessage, historyContext) {
 }
 
 const startChatBot = (db) => {
-  console.log("🤖 Bot AI Monitoring Chat Started... (Optimized Mode)");
+  console.log("🤖 Bot AI Monitoring Chat Started... (Anti-Spam Fixed)");
   const chatsRef = db.ref("chats");
+
+  const processedMessageIds = new Set();
 
   chatsRef.limitToLast(50).on("child_added", (sessionSnapshot) => {
     const sessionId = sessionSnapshot.key;
@@ -82,6 +84,16 @@ const startChatBot = (db) => {
 
     messagesRef.limitToLast(1).on("child_added", async (snapshot) => {
       const msg = snapshot.val();
+      const msgKey = snapshot.key;
+      const uniqueId = `${sessionId}_${msgKey}`;
+
+      if (processedMessageIds.has(uniqueId)) return;
+
+      processedMessageIds.add(uniqueId);
+
+      if (processedMessageIds.size > 5000) {
+        processedMessageIds.clear();
+      }
 
       if (
         msg.sender === "user" &&
