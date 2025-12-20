@@ -2,14 +2,48 @@ const express = require("express");
 const router = express.Router();
 
 const portfolioController = require("../controllers/portofolioController");
-const authmiddleware = require("../middleware/authMiddleware");
-const upload = require("../middleware/upload");
-const { checkpermission } = require("../policies/abacPolicies");
 
-router.get("/portfolio", authmiddleware, checkpermission("view", "portfolio"), portfolioController.getAllPortfolio);
-router.get("/portfolio/:id", authmiddleware, checkpermission("view", "portfolio"), portfolioController.getPortfolioById);
-router.post("/portfolio", authmiddleware, upload.single("photoUrl"), checkpermission("create", "portfolio"), portfolioController.createPortfolio);
-router.put("/portfolio/:id", authmiddleware, upload.single("photoUrl"), checkpermission("update", "portfolio"), portfolioController.updatePortfolio);
-router.delete("/portfolio/:id", authmiddleware, checkpermission("delete", "portfolio"), portfolioController.deletePortfolio);
+const authMiddleware = require("../middleware/authMiddleware");
+const checkPermission = require("../middleware/abacMiddleware");
+
+//get Portfolio
+router.get(
+  "/portfolio",
+  authMiddleware,
+  checkPermission("portfolios", "view"),
+  portfolioController.getAllPortfolio
+);
+
+// get shown Portfolio
+router.get("/portfolio/shown", portfolioController.getShownPortfolio);
+
+//get Portfolio by id
+router.get(
+  "/portfolio/:id",
+  authMiddleware,
+  checkPermission("portfolios", "view"),
+  portfolioController.getPortfolioById
+);
+//create Portfolio
+router.post(
+  "/portfolio",
+  authMiddleware,
+  checkPermission("portfolios", "create"),
+  portfolioController.createPortfolio
+);
+//update Portfolio
+router.put(
+  "/portfolio/:id",
+  authMiddleware,
+  checkPermission("portfolios", "update"),
+  portfolioController.updatePortfolio
+);
+//delete Portfolio
+router.delete(
+  "/portfolio/:id",
+  authMiddleware,
+  checkPermission("portfolios", "delete"),
+  portfolioController.deletePortfolio
+);
 
 module.exports = router;

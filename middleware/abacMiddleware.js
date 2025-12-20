@@ -1,6 +1,12 @@
-const { hasPermission } = require("../policies/permissions");
+const { hasPermission } = require("../policies/abacPolicies");
 const Project = require("../models/project");
 const Task = require("../models/task");
+const Schedule = require("../models/schedule");
+const QuizQuestion = require("../models/quizQuestion");
+const Material = require("../models/material");
+const CalculatorSettings = require("../models/calculatorSettings");
+const ServiceSchema = require("../models/serviceSchema");
+const Portfolio = require("../models/portfolio");
 
 const checkPermission = (resourceName, action) => {
   return async (req, res, next) => {
@@ -9,14 +15,37 @@ const checkPermission = (resourceName, action) => {
       if (!user) return res.status(401).json({ error: "Unauthenticated" });
 
       let data = null;
-      const resourceId = req.params.id || req.body.project_id;
+      // Safe access to body and check for params
+      const paramId = req.params.id;
+      const bodyProjectId = req.body && req.body.project_id;
+      const clientIdParam = req.params.clientId;
+      
+      const resourceId = paramId || bodyProjectId;
 
       if (resourceId) {
         let Model;
-        if (resourceName === "projects") Model = Project;
-        if (resourceName === "tasks") Model = Task;
+        
+        if (paramId) {
+             // Look up specific resource
+            switch (resourceName) {
+                case "projects": Model = Project; break;
+                case "tasks": Model = Task; break;
+                case "schedules": Model = Schedule; break;
+                case "quiz_questions": Model = QuizQuestion; break;
+                case "materials": Model = Material; break;
+                case "calculator_settings": Model = CalculatorSettings; break;
+                case "services": Model = ServiceSchema; break;
+                case "portfolios": Model = Portfolio; break;
+            }
+        } else if (bodyProjectId) {
+             // Look up Parent Project for Creation context
+             Model = Project;
+        }
 
-        data = await Model.findById(resourceId);
+        // Determine lookup method based on resource
+        if (Model) {
+             data = await Model.findOne({ id: resourceId });
+        }
 
         if (!data) return res.status(404).json({ error: "Resource not found" });
 
@@ -36,6 +65,9 @@ const checkPermission = (resourceName, action) => {
             .filter((id) => id != null)
             .map((id) => id.toString());
         }
+      } else if (clientIdParam) {
+        // Mock data for Client List route to satisfy ABAC policy (user.id === project.client_id)
+        data = { client_id: clientIdParam };
       }
 
       const isAllowed = hasPermission(user, resourceName, action, data);

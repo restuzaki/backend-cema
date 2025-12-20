@@ -1,9 +1,29 @@
 const Project = require("../models/project");
+const ROLES = require("../config/roles");
+const PROJECTIONS = require("../config/projections");
 
 // Get all projects
 exports.getAllProjects = async (req, res) => {
   try {
-    const projects = await Project.find();
+    const user = req.user;
+
+    // 1. Filter Strategy
+    const filters = {
+      [ROLES.PROJECT_MANAGER]: { manager_id: user.id },
+      [ROLES.CLIENT]: { client_id: user.id },
+    };
+    const queryFilter = filters[user.role] || {};
+
+    // 2. Build Query
+    let dbQuery = Project.find(queryFilter);
+
+    // 3. Apply Field Limiting for Clients
+    if (user.role === ROLES.CLIENT) {
+      dbQuery = dbQuery.select(PROJECTIONS.PROJECT.CLIENT_VIEW);
+    }
+
+    const projects = await dbQuery;
+
     res.json({
       status: "success",
       total: projects.length,
@@ -21,7 +41,15 @@ exports.getAllProjects = async (req, res) => {
 // Get project by ID
 exports.getProjectById = async (req, res) => {
   try {
-    const project = await Project.findOne({ id: req.params.id });
+    const user = req.user;
+    let query = Project.findOne({ id: req.params.id });
+
+    // Apply Field Limiting for Clients
+    if (user.role === ROLES.CLIENT) {
+      query = query.select(PROJECTIONS.PROJECT.CLIENT_VIEW);
+    }
+
+    const project = await query;
 
     if (!project) {
       return res.status(404).json({
@@ -43,32 +71,15 @@ exports.getProjectById = async (req, res) => {
   }
 };
 
-// Get projects by client ID
-exports.getProjectsByClientId = async (req, res) => {
-  try {
-    const projects = await Project.find({ clientId: req.params.clientId });
-
-    res.json({
-      status: "success",
-      total: projects.length,
-      data: projects,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      status: "error",
-      error: "Failed to fetch projects for client",
-    });
-  }
-};
-
 // Create new project
 exports.createProject = async (req, res) => {
   const {
-    id,
     name,
-    clientId,
+    client_id,
     clientName,
+    manager_id,
+    managerName,
+    admin_id,
     status,
     serviceType,
     startDate,
@@ -79,35 +90,29 @@ exports.createProject = async (req, res) => {
   } = req.body;
 
   // Validate required fields
-  if (!id || !name || !clientId || !clientName || !serviceType || !startDate) {
+  if (!name || !client_id || !clientName || !serviceType || !startDate) {
     return res.status(400).json({
       status: "error",
       error:
-        "Required fields: id, name, clientId, clientName, serviceType, startDate",
+        "Required fields: name, clientId, clientName, serviceType, startDate",
     });
   }
 
   try {
-    // Check if project with same ID already exists
-    const existingProject = await Project.findOne({ id });
-    if (existingProject) {
-      return res.status(400).json({
-        status: "error",
-        error: "Project with this ID already exists",
-      });
-    }
-
     const newProject = await Project.create({
-      id,
+      id: `PROJ-${Date.now()}`,
       name,
-      clientId,
+      admin_id,
+      client_id,
       clientName,
-      status: status || "Not Started",
+      manager_id,
+      managerName,
+      status: status || "LEAD", // Default to Valid Enum
       serviceType,
       startDate,
       endDate,
       progress: progress || 0,
-      budget,
+      financials: req.body.financials || { budget_total: budget || 0 }, // Map financials
       description,
     });
 
@@ -117,10 +122,10 @@ exports.createProject = async (req, res) => {
       data: newProject,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Create Project Error:", error);
     res.status(500).json({
       status: "error",
-      error: "Failed to create project",
+      error: error.message,
     });
   }
 };
@@ -139,8 +144,11 @@ exports.updateProject = async (req, res) => {
 
     const {
       name,
-      clientId,
+      client_id,
       clientName,
+      manager_id,
+      managerName,
+      admin_id,
       status,
       serviceType,
       startDate,
@@ -152,8 +160,11 @@ exports.updateProject = async (req, res) => {
 
     // Update fields if provided
     if (name !== undefined) project.name = name;
-    if (clientId !== undefined) project.clientId = clientId;
+    if (client_id !== undefined) project.client_id = client_id;
     if (clientName !== undefined) project.clientName = clientName;
+    if (manager_id !== undefined) project.manager_id = manager_id;
+    if (managerName !== undefined) project.managerName = managerName;
+    if (admin_id !== undefined) project.admin_id = admin_id;
     if (status !== undefined) project.status = status;
     if (serviceType !== undefined) project.serviceType = serviceType;
     if (startDate !== undefined) project.startDate = startDate;
@@ -173,7 +184,7 @@ exports.updateProject = async (req, res) => {
     console.error(error);
     res.status(500).json({
       status: "error",
-      error: "Failed to update project",
+      error: error.message,
     });
   }
 };

@@ -1,8 +1,17 @@
-const Service = require("../models/Service");
+const ServiceSchema = require("../models/serviceSchema");
 
 exports.getAllServices = async (req, res) => {
   try {
-    const services = await Service.find();
+    const services = await ServiceSchema.find();
+    res.json({ status: "ok", data: services });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: error.message });
+  }
+};
+
+exports.getShownServices = async (req, res) => {
+  try {
+    const services = await ServiceSchema.find({ isShown: true });
     res.json({ status: "ok", data: services });
   } catch (error) {
     res.status(500).json({ status: "error", message: error.message });
@@ -11,7 +20,28 @@ exports.getAllServices = async (req, res) => {
 
 exports.createService = async (req, res) => {
   try {
-    const newService = await Service.create(req.body);
+    const {
+      title,
+      category,
+      price,
+      image,
+      description,
+      features,
+      isPopular,
+      isShown,
+    } = req.body;
+
+    const newService = await ServiceSchema.create({
+      title,
+      category,
+      price,
+      image,
+      description,
+      features,
+      isPopular: isPopular !== undefined ? isPopular : false,
+      isShown: isShown !== undefined ? isShown : true,
+    });
+
     res.json({ status: "ok", data: newService });
   } catch (error) {
     res.status(500).json({ status: "error", message: error.message });
@@ -21,7 +51,7 @@ exports.createService = async (req, res) => {
 exports.updateService = async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedService = await Service.findByIdAndUpdate(id, req.body, {
+    const updatedService = await ServiceSchema.findByIdAndUpdate(id, req.body, {
       new: true,
     });
 
@@ -44,7 +74,7 @@ exports.updateService = async (req, res) => {
 exports.deleteService = async (req, res) => {
   try {
     const { id } = req.params;
-    const deletedService = await Service.findByIdAndDelete(id);
+    const deletedService = await ServiceSchema.findByIdAndDelete(id);
 
     if (!deletedService) {
       return res
