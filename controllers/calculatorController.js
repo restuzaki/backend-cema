@@ -11,6 +11,11 @@ exports.getSettings = async (req, res) => {
         id: "CALC-SETTINGS",
         areaMultiplier: 1,
         pricePerRoom: 0,
+        materials: {
+          standard: 0,
+          premium: 0,
+          luxury: 0,
+        },
       });
     }
     res.json({ status: "success", data: settings });
@@ -30,12 +35,25 @@ exports.updateSettings = async (req, res) => {
         id: "CALC-SETTINGS",
         areaMultiplier: 1,
         pricePerRoom: 0,
+        materials: {
+          standard: 0,
+          premium: 0,
+          luxury: 0,
+        },
       });
     }
 
-    const { areaMultiplier, pricePerRoom } = req.body;
+    const { areaMultiplier, pricePerRoom, materials } = req.body;
     if (areaMultiplier !== undefined) settings.areaMultiplier = areaMultiplier;
     if (pricePerRoom !== undefined) settings.pricePerRoom = pricePerRoom;
+    if (materials !== undefined) {
+      if (materials.standard !== undefined)
+        settings.materials.standard = materials.standard;
+      if (materials.premium !== undefined)
+        settings.materials.premium = materials.premium;
+      if (materials.luxury !== undefined)
+        settings.materials.luxury = materials.luxury;
+    }
 
     await settings.save();
     res.json({ status: "success", data: settings });

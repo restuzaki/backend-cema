@@ -5,9 +5,9 @@ const checkPermission = require("../middleware/abacMiddleware");
 const calculatorController = require("../controllers/calculatorController");
 
 // Settings (Singleton)
-router.get("/calculator/settings", calculatorController.getSettings);
+router.get("/settings", calculatorController.getSettings);
 router.put(
-  "/calculator/settings",
+  "/settings",
   authMiddleware,
   checkPermission("calculator_settings", "update"),
   calculatorController.updateSettings
