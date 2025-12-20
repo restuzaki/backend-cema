@@ -9,6 +9,7 @@ function isWorkingHours() {
   const day = now.getDay();
 
   if (day === 0 || day === 6) return false;
+
   return hour >= WORK_START_HOUR && hour < WORK_END_HOUR;
 }
 
@@ -26,7 +27,11 @@ async function getChatHistory(messagesRef) {
     snapshot.forEach((child) => {
       const msg = child.val();
 
-      if (msg.text && !msg.text.includes("Maaf, saya sedang mengalami")) {
+      if (
+        msg.text &&
+        !msg.isDeleted &&
+        !msg.text.includes("Maaf, saya sedang mengalami")
+      ) {
         const role = msg.sender === "user" ? "User" : "Customer Service";
         history += `${role}: ${msg.text}\n`;
       }
@@ -73,7 +78,9 @@ async function generateAIResponse(currentMessage, historyContext) {
 }
 
 const startChatBot = (db) => {
-  console.log("🤖 Bot AI Monitoring Chat Started... (Anti-Spam Fixed)");
+  console.log(
+    "🤖 Bot AI Monitoring Chat Started... (Anti-Spam & Edit Logic Fixed)"
+  );
   const chatsRef = db.ref("chats");
 
   const processedMessageIds = new Set();
@@ -88,7 +95,6 @@ const startChatBot = (db) => {
       const uniqueId = `${sessionId}_${msgKey}`;
 
       if (processedMessageIds.has(uniqueId)) return;
-
       processedMessageIds.add(uniqueId);
 
       if (processedMessageIds.size > 5000) {
@@ -98,10 +104,12 @@ const startChatBot = (db) => {
       if (
         msg.sender === "user" &&
         !isWorkingHours() &&
-        isRecent(msg.timestamp)
+        isRecent(msg.timestamp) &&
+        !msg.isDeleted
       ) {
-        const historyContext = await getChatHistory(messagesRef);
+        await new Promise((r) => setTimeout(r, 1000));
 
+        const historyContext = await getChatHistory(messagesRef);
         const aiText = await generateAIResponse(msg.text, historyContext);
         const now = new Date();
 
@@ -126,19 +134,28 @@ const startChatBot = (db) => {
       const msgKey = snapshot.key;
 
       if (msg.sender === "user") {
+        if (msg.isDeleted) {
+          console.log(
+            `Pesan dihapus oleh user (ID: ${msgKey}). Bot mengabaikan.`
+          );
+          return;
+        }
+
         console.log(`Pesan diedit oleh user: ${msg.text}`);
 
         const nextMsgQuery = messagesRef
           .orderByKey()
           .startAfter(msgKey)
-          .limitToFirst(1);
+          .limitToFirst(2);
 
         try {
           const nextSnap = await nextMsgQuery.once("value");
           nextSnap.forEach(async (childSnap) => {
             const nextMsg = childSnap.val();
+
             if (nextMsg.sender === "agent") {
               await childSnap.ref.remove();
+              console.log("Respon lama bot dihapus.");
             }
           });
         } catch (error) {
@@ -148,6 +165,7 @@ const startChatBot = (db) => {
         if (!isWorkingHours()) {
           try {
             const historyContext = await getChatHistory(messagesRef);
+
             const newAiResponse = await generateAIResponse(
               msg.text,
               historyContext
@@ -168,9 +186,9 @@ const startChatBot = (db) => {
               lastMessage: "🤖 " + newAiResponse.substring(0, 30) + "...",
             });
 
-            console.log("Jawaban AI diperbarui (Edited).");
+            console.log("Jawaban AI diperbarui untuk pesan yang diedit.");
           } catch (error) {
-            console.error("Error generating new AI response:", error);
+            console.error("Error generating new AI response (Edit):", error);
           }
         }
       }
