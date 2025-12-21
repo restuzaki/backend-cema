@@ -32,6 +32,7 @@ exports.createService = async (req, res) => {
     } = req.body;
 
     const newService = await ServiceSchema.create({
+      id: `SERVICE-${Date.now()}`,
       title,
       category,
       price,
@@ -51,9 +52,11 @@ exports.createService = async (req, res) => {
 exports.updateService = async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedService = await ServiceSchema.findByIdAndUpdate(id, req.body, {
-      new: true,
-    });
+    const updatedService = await ServiceSchema.findOneAndUpdate(
+      { id },
+      req.body,
+      { new: true }
+    );
 
     if (!updatedService) {
       return res
@@ -74,7 +77,7 @@ exports.updateService = async (req, res) => {
 exports.deleteService = async (req, res) => {
   try {
     const { id } = req.params;
-    const deletedService = await ServiceSchema.findByIdAndDelete(id);
+    const deletedService = await ServiceSchema.findOneAndDelete({ id });
 
     if (!deletedService) {
       return res
