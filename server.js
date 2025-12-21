@@ -2,9 +2,11 @@ require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
-const admin = require("firebase-admin");
 
+const admin = require("./config/firebaseAdmin");
 const connectDB = require("./config/db");
+
+// ROUTES
 const authRoutes = require("./routes/authRoute");
 const projectRoutes = require("./routes/projectRoute");
 const taskRoutes = require("./routes/taskRoute");
@@ -14,27 +16,26 @@ const calculatorRoutes = require("./routes/calculatorRoute");
 const serviceRoutes = require("./routes/serviceRoute");
 const portfolioRoutes = require("./routes/portfolioRoute");
 const userRoutes = require("./routes/userRoute");
+
+// SERVICES
 const startChatBot = require("./services/chatService");
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-
+// APP
 const app = express();
 const PORT = process.env.PORT || 5000;
 process.env.TZ = "Asia/Jakarta";
 
+// DB
 connectDB();
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL:
-    "https://cema-web-default-rtdb.asia-southeast1.firebasedatabase.app",
-});
 const db = admin.database();
 
+// MIDDLEWARE
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ limit: "10mb", extended: true }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+// ROUTES (TETAP SAMA)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api", authRoutes);
@@ -47,8 +48,10 @@ app.use("/api", serviceRoutes);
 app.use("/api", portfolioRoutes);
 app.use("/api/users", userRoutes);
 
+// SERVICES
 startChatBot(db);
 
+// SERVER
 app.listen(PORT, () => {
   console.log(`🚀 API Server berjalan di http://localhost:${PORT}`);
 });
