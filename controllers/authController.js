@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const ROLES = require("../config/roles");
+const loginService = require("../services/loginService");
 
 exports.register = async (req, res) => {
   const { email, password } = req.body;
@@ -27,7 +28,7 @@ exports.register = async (req, res) => {
     });
 
     console.log(`User baru terdaftar: ${email}`);
-    res.json({ status: "ok", message: "Registrasi berhasil" });
+    res.json({ status: "success", message: "Registrasi berhasil" });
   } catch (error) {
     console.error(error);
     res.json({ status: "error", error: "Terjadi kesalahan server" });
@@ -54,19 +55,42 @@ exports.login = async (req, res) => {
       );
 
       return res.json({
-        status: "ok",
+        status: "success",
         message: "Login berhasil",
         token,
         role: user.role,
         id: user._id,
       });
     }
-    // ------------------------------------------------------
 
     res.json({ status: "error", error: "Email atau password salah" });
   } catch (err) {
     console.error(err);
     res.json({ status: "error", error: "Server error" });
+  }
+};
+
+exports.googleLogin = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({
+        status: "error",
+        error: "ID token diperlukan",
+      });
+    }
+
+    // Call the login service
+    const result = await loginService.googleLogin(idToken);
+
+    return res.json(result);
+  } catch (error) {
+    console.error("Google login error:", error);
+    res.status(401).json({
+      status: "error",
+      error: error.message || "Google authentication gagal",
+    });
   }
 };
 

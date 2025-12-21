@@ -22,7 +22,6 @@ exports.getTasksByProjectId = async (req, res) => {
 // Create new task
 exports.createTask = async (req, res) => {
   const {
-    id,
     projectId,
     title,
     description,
@@ -51,7 +50,7 @@ exports.createTask = async (req, res) => {
     }
 
     const newTask = await Task.create({
-      id: id || `TASK-${Date.now()}`,
+      id: `TASK-${Date.now()}`,
       projectId,
       title,
       description,

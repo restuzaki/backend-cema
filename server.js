@@ -1,6 +1,6 @@
 require("dotenv").config();
 const express = require("express");
-const bodyParser = require("body-parser");
+// const bodyParser = require("body-parser"); // Hapus atau comment ini, tidak perlu lagi kalau pakai express.json
 const cors = require("cors");
 const admin = require("firebase-admin");
 
@@ -32,8 +32,9 @@ admin.initializeApp({
 const db = admin.database();
 
 app.use(cors());
-app.use(bodyParser.json());
-app.use(express.json());
+
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 app.use("/api", authRoutes);
 app.use("/api", projectRoutes);
