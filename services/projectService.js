@@ -182,12 +182,14 @@ exports.createProject = async (projectData) => {
  * @returns {Promise<Object>}
  */
 exports.updateProject = async (projectId, updateData) => {
-  const project = await Project.findOne({ id: projectId });
-  if (!project) return null;
-
-  Object.assign(project, updateData);
-  await project.save();
-  return project;
+  return await Project.findOneAndUpdate(
+    { id: projectId },
+    { $set: updateData },
+    {
+      new: true,
+      runValidators: false,
+    }
+  );
 };
 
 /**
