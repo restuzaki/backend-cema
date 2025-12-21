@@ -20,7 +20,9 @@ exports.getAllSchedules = async (req, res) => {
     res.json({ status: "success", data: schedules });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ status: "error", error: "Failed to fetch schedules" });
+    res
+      .status(500)
+      .json({ status: "error", error: "Failed to fetch schedules" });
   }
 };
 
@@ -28,23 +30,38 @@ exports.getScheduleById = async (req, res) => {
   try {
     const schedule = await Schedule.findOne({ id: req.params.id });
     if (!schedule) {
-      return res.status(404).json({ status: "error", error: "Schedule not found" });
+      return res
+        .status(404)
+        .json({ status: "error", error: "Schedule not found" });
     }
     res.json({ status: "success", data: schedule });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ status: "error", error: "Failed to fetch schedule" });
+    res
+      .status(500)
+      .json({ status: "error", error: "Failed to fetch schedule" });
   }
 };
 
 exports.createSchedule = async (req, res) => {
-  const { project_id, date, time, event, description, id } = req.body;
+  const {
+    project_id,
+    date,
+    time,
+    event,
+    description,
+    id,
+    isOnline,
+    location,
+    link,
+  } = req.body;
   const user = req.user;
 
-  if (!project_id || !date || !time || !event) {
+  // Validate required fields (including isOnline boolean check)
+  if (!project_id || !date || !time || !event || isOnline === undefined) {
     return res.status(400).json({
       status: "error",
-      error: "Required fields: project_id, date, time, event",
+      error: "Required fields: project_id, date, time, event, isOnline",
     });
   }
 
@@ -52,12 +69,21 @@ exports.createSchedule = async (req, res) => {
     // Fetch Project to get Manager/Client info
     const project = await Project.findOne({ id: project_id });
     if (!project) {
-      return res.status(404).json({ status: "error", error: "Project not found" });
+      return res
+        .status(404)
+        .json({ status: "error", error: "Project not found" });
     }
 
     // Enforce PM Ownership Check
-    if (user.role === ROLES.PROJECT_MANAGER && project.manager_id.toString() !== user.id) {
-       return res.status(403).json({ status: "error", error: "Unauthorized: You can only create schedules for your own projects." });
+    if (
+      user.role === ROLES.PROJECT_MANAGER &&
+      project.manager_id.toString() !== user.id
+    ) {
+      return res.status(403).json({
+        status: "error",
+        error:
+          "Unauthorized: You can only create schedules for your own projects.",
+      });
     }
 
     const newSchedule = await Schedule.create({
@@ -69,6 +95,9 @@ exports.createSchedule = async (req, res) => {
       time,
       event,
       description,
+      isOnline,
+      location,
+      link,
       status: SCHEDULE_STATUS.UPCOMING,
     });
 
@@ -79,7 +108,9 @@ exports.createSchedule = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ status: "error", error: "Failed to create schedule" });
+    res
+      .status(500)
+      .json({ status: "error", error: "Failed to create schedule" });
   }
 };
 
@@ -87,12 +118,15 @@ exports.updateSchedule = async (req, res) => {
   try {
     const schedule = await Schedule.findOne({ id: req.params.id });
     if (!schedule) {
-      return res.status(404).json({ status: "error", error: "Schedule not found" });
+      return res
+        .status(404)
+        .json({ status: "error", error: "Schedule not found" });
     }
 
     // Logic: Client check for date change
     const user = req.user;
-    const { date, time, event, description, status } = req.body;
+    const { date, time, event, description, status, isOnline, location, link } =
+      req.body;
 
     if (user.role === ROLES.CLIENT && date) {
       const newDate = new Date(date);
@@ -100,7 +134,8 @@ exports.updateSchedule = async (req, res) => {
       if (newDate < oldDate) {
         return res.status(403).json({
           status: "error",
-          error: "Clients cannot move schedule directly to an earlier date. Please contact Admin/PM.",
+          error:
+            "Clients cannot move schedule directly to an earlier date. Please contact Admin/PM.",
         });
       }
     }
@@ -110,6 +145,9 @@ exports.updateSchedule = async (req, res) => {
     if (event) schedule.event = event;
     if (description) schedule.description = description;
     if (status) schedule.status = status;
+    if (isOnline !== undefined) schedule.isOnline = isOnline;
+    if (location) schedule.location = location;
+    if (link) schedule.link = link;
 
     await schedule.save();
 
@@ -120,7 +158,9 @@ exports.updateSchedule = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ status: "error", error: "Failed to update schedule" });
+    res
+      .status(500)
+      .json({ status: "error", error: "Failed to update schedule" });
   }
 };
 
@@ -128,11 +168,15 @@ exports.deleteSchedule = async (req, res) => {
   try {
     const schedule = await Schedule.findOneAndDelete({ id: req.params.id });
     if (!schedule) {
-      return res.status(404).json({ status: "error", error: "Schedule not found" });
+      return res
+        .status(404)
+        .json({ status: "error", error: "Schedule not found" });
     }
     res.json({ status: "success", message: "Schedule deleted successfully" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ status: "error", error: "Failed to delete schedule" });
+    res
+      .status(500)
+      .json({ status: "error", error: "Failed to delete schedule" });
   }
 };

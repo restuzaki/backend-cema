@@ -14,6 +14,13 @@ const ScheduleSchema = new Schema(
     event: { type: String, required: true },
     description: { type: String },
 
+    isOnline: { type: Boolean, required: true },
+    location: {
+      address: String,
+      coordinates: { lat: Number, lng: Number },
+    },
+    link: { type: String },
+
     status: {
       type: String,
       enum: Object.values(SCHEDULE_STATUS),
