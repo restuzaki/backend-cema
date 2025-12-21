@@ -49,14 +49,42 @@ exports.getProjectById = async (req, res) => {
 
 // Create new project
 exports.createProject = async (req, res) => {
-  const { name, client_id, clientName, serviceType, startDate } = req.body;
+  const {
+    name,
+    description,
+    admin_id,
+    client_id,
+    clientName,
+    manager_id,
+    managerName,
+    team_members,
+    status,
+    serviceType,
+    location,
+    startDate,
+    endDate,
+    financials,
+    documents,
+  } = req.body;
 
-  // Validate required fields
-  if (!name || !client_id || !clientName || !serviceType || !startDate) {
+  // Validate required fields (matching Schema)
+  const requiredFields = [
+    "name",
+    "admin_id",
+    "client_id",
+    "clientName",
+    "manager_id",
+    "managerName",
+    "serviceType",
+    "startDate",
+  ];
+
+  const missingFields = requiredFields.filter((field) => !req.body[field]);
+
+  if (missingFields.length > 0) {
     return res.status(400).json({
       status: "error",
-      error:
-        "Required fields: name, clientId, clientName, serviceType, startDate",
+      error: `Missing required fields: ${missingFields.join(", ")}`,
     });
   }
 
