@@ -1,5 +1,25 @@
 const ROLES = require("../config/roles");
 
+const ACCESS_RULES = {
+  PROJECT: {
+    EDIT: {
+      [ROLES.ADMIN]: true,
+      [ROLES.PROJECT_MANAGER]: { owner_only: true, max_budget: 1000000 },
+      [ROLES.TEAM_MEMBER]: false,
+      [ROLES.CLIENT]: false,
+    },
+    DELETE: {
+      [ROLES.ADMIN]: true,
+      DEFAULT: false,
+    },
+    VIEW_FINANCIALS: {
+      [ROLES.ADMIN]: true,
+      [ROLES.PROJECT_MANAGER]: { owner_only: true },
+      DEFAULT: false,
+    },
+  },
+};
+
 const POLICIES = {
   [ROLES.ADMIN]: {
     users: { view: true, create: true, update: true, delete: true },
@@ -21,7 +41,18 @@ const POLICIES = {
     projects: {
       view: (user, project) => project.manager_id === user.id,
       create: true,
-      update: (user, project) => project.manager_id === user.id,
+      update: (user, project) => {
+        const rule = ACCESS_RULES.PROJECT.EDIT[ROLES.PROJECT_MANAGER];
+        if (rule === true) return true;
+        if (!rule) return false;
+
+        const isOwner = !rule.owner_only || project.manager_id === user.id;
+        const withinBudget =
+          !rule.max_budget ||
+          (project.financials?.budget_total || 0) < rule.max_budget;
+
+        return isOwner && withinBudget;
+      },
     },
     tasks: {
       view: true,
@@ -130,4 +161,4 @@ function hasPermission(user, resource, action, data) {
   return data != null && permission(user, data);
 }
 
-module.exports = { hasPermission };
+module.exports = { hasPermission, ACCESS_RULES };

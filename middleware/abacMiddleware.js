@@ -18,33 +18,49 @@ const checkPermission = (resourceName, action) => {
       // Safe access to body and check for params
       const paramId = req.params.id;
       const bodyProjectId = req.body && req.body.project_id;
-      const clientIdParam = req.params.clientId;
-      
+      const clientIdParam = user.id;
+
       const resourceId = paramId || bodyProjectId;
 
       if (resourceId) {
         let Model;
-        
+
         if (paramId) {
-             // Look up specific resource
-            switch (resourceName) {
-                case "projects": Model = Project; break;
-                case "tasks": Model = Task; break;
-                case "schedules": Model = Schedule; break;
-                case "quiz_questions": Model = QuizQuestion; break;
-                case "materials": Model = Material; break;
-                case "calculator_settings": Model = CalculatorSettings; break;
-                case "services": Model = ServiceSchema; break;
-                case "portfolios": Model = Portfolio; break;
-            }
+          // Look up specific resource
+          switch (resourceName) {
+            case "projects":
+              Model = Project;
+              break;
+            case "tasks":
+              Model = Task;
+              break;
+            case "schedules":
+              Model = Schedule;
+              break;
+            case "quiz_questions":
+              Model = QuizQuestion;
+              break;
+            case "materials":
+              Model = Material;
+              break;
+            case "calculator_settings":
+              Model = CalculatorSettings;
+              break;
+            case "services":
+              Model = ServiceSchema;
+              break;
+            case "portfolios":
+              Model = Portfolio;
+              break;
+          }
         } else if (bodyProjectId) {
-             // Look up Parent Project for Creation context
-             Model = Project;
+          // Look up Parent Project for Creation context
+          Model = Project;
         }
 
         // Determine lookup method based on resource
         if (Model) {
-             data = await Model.findOne({ id: resourceId });
+          data = await Model.findOne({ id: resourceId });
         }
 
         if (!data) return res.status(404).json({ error: "Resource not found" });
