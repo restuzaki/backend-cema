@@ -28,7 +28,7 @@ exports.register = async (req, res) => {
     });
 
     console.log(`User baru terdaftar: ${email}`);
-    res.json({ status: "ok", message: "Registrasi berhasil" });
+    res.json({ status: "success", message: "Registrasi berhasil" });
   } catch (error) {
     console.error(error);
     res.json({ status: "error", error: "Terjadi kesalahan server" });
@@ -55,7 +55,7 @@ exports.login = async (req, res) => {
       );
 
       return res.json({
-        status: "ok",
+        status: "success",
         message: "Login berhasil",
         token,
         role: user.role,
