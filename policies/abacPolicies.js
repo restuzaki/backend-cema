@@ -41,7 +41,7 @@ const POLICIES = {
       update: false,
       delete: false,
     },
-    services: { view: true, create: false, update: false, delete: false },
+    services: { view: false, create: false, update: false, delete: false },
     users: {
       view: (user, target) => user.id === target.id,
       create: false,
@@ -75,7 +75,7 @@ const POLICIES = {
       update: false,
       delete: false,
     },
-    services: { view: true, create: false, update: false, delete: false },
+    services: { view: false, create: false, update: false, delete: false },
     portfolios: { view: true, create: false, update: false, delete: false },
     users: {
       view: (user, target) => user.id === target.id,
@@ -110,7 +110,7 @@ const POLICIES = {
       update: false,
       delete: false,
     },
-    services: { view: true, create: false, update: false, delete: false },
+    services: { view: false, create: false, update: false, delete: false },
     portfolios: { view: true, create: false, update: false, delete: false },
   },
 };
