@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Project = require("../models/project");
+const ServiceSchema = require("../models/serviceSchema");
 const { ACCESS_RULES } = require("../policies/abacPolicies");
 const ROLES = require("../config/roles");
 
@@ -88,6 +89,16 @@ exports.getAllProjects = async (user) => {
 
   const pipeline = [
     { $match: matchStage },
+    // Lookup Service Data
+    {
+      $lookup: {
+        from: "serviceschemas",
+        localField: "serviceType",
+        foreignField: "_id",
+        as: "serviceData",
+      },
+    },
+    { $unwind: { path: "$serviceData", preserveNullAndEmptyArrays: true } },
     // 2. Permission Injection
     ...injectProjectPermissions(user.id, user.role),
   ];
@@ -118,6 +129,16 @@ exports.getProjectById = async (projectId, user) => {
 
   const pipeline = [
     { $match: matchStage },
+    // Lookup Service Data
+    {
+      $lookup: {
+        from: "serviceschemas",
+        localField: "serviceType",
+        foreignField: "_id",
+        as: "serviceData",
+      },
+    },
+    { $unwind: { path: "$serviceData", preserveNullAndEmptyArrays: true } },
     ...injectProjectPermissions(user.id, user.role),
   ];
 
@@ -135,9 +156,16 @@ exports.getProjectById = async (projectId, user) => {
  * @returns {Promise<Object>}
  */
 exports.createProject = async (projectData) => {
+  // 1. Fetch Service to get the Title
+  const service = await ServiceSchema.findById(projectData.serviceType);
+  if (!service) {
+    throw new Error(`Service not found with ID: ${projectData.serviceType}`);
+  }
+
   const newProject = await Project.create({
     id: `PROJ-${Date.now()}`,
     ...projectData,
+    serviceName: service.title, // Auto-populate Service Name
     status: projectData.status || "LEAD",
     progress: projectData.progress || 0,
     financials: projectData.financials || {

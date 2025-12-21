@@ -2,6 +2,8 @@ const Schedule = require("../models/schedule");
 const Project = require("../models/project");
 const ROLES = require("../config/roles");
 const SCHEDULE_STATUS = require("../config/scheduleStatus");
+const scheduleService = require("../services/scheduleService");
+const { createScheduleSchema } = require("../validations/schedule.validation");
 
 exports.getAllSchedules = async (req, res) => {
   try {
@@ -43,63 +45,91 @@ exports.getScheduleById = async (req, res) => {
   }
 };
 
+/**
+ * Polymorphic Create Schedule Endpoint
+ * Handles both "Add to Existing Project" and "Book New Project" scenarios.
+ */
 exports.createSchedule = async (req, res) => {
-  const {
-    project_id,
-    date,
-    time,
-    event,
-    description,
-    id,
-    isOnline,
-    location,
-    link,
-  } = req.body;
   const user = req.user;
 
-  // Validate required fields (including isOnline boolean check)
-  if (!project_id || !date || !time || !event || isOnline === undefined) {
+  // 1. Zod Validation
+  const validation = createScheduleSchema.safeParse(req.body);
+
+  if (!validation.success) {
     return res.status(400).json({
       status: "error",
-      error: "Required fields: project_id, date, time, event, isOnline",
+      error: "Validation failed",
+      details: validation.error.errors,
     });
   }
 
+  const { data } = validation;
+
   try {
-    // Fetch Project to get Manager/Client info
-    const project = await Project.findOne({ id: project_id });
-    if (!project) {
-      return res
-        .status(404)
-        .json({ status: "error", error: "Project not found" });
-    }
+    let newSchedule;
 
-    // Enforce PM Ownership Check
-    if (
-      user.role === ROLES.PROJECT_MANAGER &&
-      project.manager_id.toString() !== user.id
-    ) {
-      return res.status(403).json({
-        status: "error",
-        error:
-          "Unauthorized: You can only create schedules for your own projects.",
-      });
-    }
+    // 2. Logic Switch based on booking_type
+    switch (data.booking_type) {
+      case "NEW":
+        // Scenario B: Booking / New Project
+        newSchedule = await scheduleService.createScheduleWithNewProject(
+          {
+            date: data.date,
+            time: data.time,
+            event: data.event,
+            description: data.description,
+            isOnline: data.isOnline,
+            location: data.location,
+            link: data.link,
+          },
+          {
+            clientName: data.clientName,
+            serviceType: data.serviceType,
+            description: data.projectDescription,
+          },
+          user
+        );
+        break;
 
-    const newSchedule = await Schedule.create({
-      id: id || `SCH-${Date.now()}`,
-      client_id: project.client_id, // Derived from Project
-      manager_id: project.manager_id, // Derived from Project
-      project_id: project._id, // Store ObjectId reference
-      date,
-      time,
-      event,
-      description,
-      isOnline,
-      location,
-      link,
-      status: SCHEDULE_STATUS.UPCOMING,
-    });
+      case "EXISTING": {
+        // Scenario A: Existing Project
+        const project = await Project.findOne({ id: data.project_id });
+        if (!project) {
+          return res
+            .status(404)
+            .json({ status: "error", error: "Project not found" });
+        }
+
+        // Enforce PM Ownership Check
+        if (
+          user.role === ROLES.PROJECT_MANAGER &&
+          project.manager_id.toString() !== user.id
+        ) {
+          return res.status(403).json({
+            status: "error",
+            error:
+              "Unauthorized: You can only create schedules for your own projects.",
+          });
+        }
+
+        newSchedule = await scheduleService.createSchedule({
+          client_id: project.client_id, // Derived from Project
+          manager_id: project.manager_id, // Derived from Project
+          project_id: project._id, // Store ObjectId reference
+          date: data.date,
+          time: data.time,
+          event: data.event,
+          description: data.description,
+          isOnline: data.isOnline,
+          location: data.location,
+          link: data.link,
+        });
+        break;
+      }
+
+      default:
+        throw new Error("Invalid booking type");
+    }
 
     res.status(201).json({
       status: "success",
@@ -107,10 +137,11 @@ exports.createSchedule = async (req, res) => {
       data: newSchedule,
     });
   } catch (error) {
-    console.error(error);
-    res
-      .status(500)
-      .json({ status: "error", error: "Failed to create schedule" });
+    console.error("Create Schedule Error:", error);
+    res.status(500).json({
+      status: "error",
+      error: error.message || "Failed to create schedule",
+    });
   }
 };
 
