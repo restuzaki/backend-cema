@@ -105,7 +105,6 @@ exports.createProject = async (req, res) => {
   }
 };
 
-// Update project
 exports.updateProject = async (req, res) => {
   try {
     const project = await projectService.updateProject(req.params.id, req.body);
@@ -113,7 +112,7 @@ exports.updateProject = async (req, res) => {
     if (!project) {
       return res.status(404).json({
         status: "error",
-        message: "Project not found",
+        message: "Project tidak ditemukan",
       });
     }
 
@@ -123,7 +122,6 @@ exports.updateProject = async (req, res) => {
       data: project,
     });
   } catch (error) {
-    console.error(error);
     res.status(500).json({
       status: "error",
       error: error.message,
