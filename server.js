@@ -1,6 +1,6 @@
 require("dotenv").config();
 const express = require("express");
-const bodyParser = require("body-parser");
+const path = require("path");
 const cors = require("cors");
 const admin = require("firebase-admin");
 
@@ -32,7 +32,10 @@ admin.initializeApp({
 const db = admin.database();
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api", authRoutes);
 app.use("/api", projectRoutes);
@@ -49,3 +52,5 @@ startChatBot(db);
 app.listen(PORT, () => {
   console.log(`🚀 API Server berjalan di http://localhost:${PORT}`);
 });
+
+module.exports = app;

@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-  "test": "echo \"No test specified\"",
-  "start": "node server.js"
+    "test": "echo \"No test specified\"",
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",

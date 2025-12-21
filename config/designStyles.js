@@ -1,10 +1,10 @@
 const DESIGN_STYLES = {
-  MINIMALIST: "MINIMALIST",
-  INDUSTRIAL: "INDUSTRIAL",
-  SCANDINAVIAN: "SCANDINAVIAN",
-  MODERN_LUXURY: "MODERN_LUXURY",
-  TROPICAL: "TROPICAL",
-  JAPANDI: "JAPANDI",
+  MINIMALIST: "Minimalist",
+  INDUSTRIAL: "Industrial",
+  SCANDINAVIAN: "Scandinavian",
+  MODERN_LUXURY: "Modern Luxury",
+  TROPICAL: "Tropical",
+  JAPANDI: "Japandi",
 };
 
 module.exports = DESIGN_STYLES;

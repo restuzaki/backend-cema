@@ -1,12 +1,13 @@
 const express = require("express");
 const router = express.Router();
 
-const portfolioController = require("../controllers/portofolioController");
-
+const portfolioController = require("../controllers/portfolioController");
 const authMiddleware = require("../middleware/authMiddleware");
 const checkPermission = require("../middleware/abacMiddleware");
 
-//get Portfolio
+// PERBAIKAN: Import langsung dari middleware upload
+const upload = require("../middleware/uploadMiddleware");
+
 router.get(
   "/portfolio",
   authMiddleware,
@@ -14,31 +15,31 @@ router.get(
   portfolioController.getAllPortfolio
 );
 
-// get shown Portfolio
 router.get("/portfolio/shown", portfolioController.getShownPortfolio);
 
-//get Portfolio by id
 router.get(
   "/portfolio/:id",
   authMiddleware,
   checkPermission("portfolios", "view"),
   portfolioController.getPortfolioById
 );
-//create Portfolio
+
 router.post(
   "/portfolio",
   authMiddleware,
   checkPermission("portfolios", "create"),
+  upload.single("photo"), // Sekarang upload tidak akan undefined
   portfolioController.createPortfolio
 );
-//update Portfolio
+
 router.put(
   "/portfolio/:id",
   authMiddleware,
   checkPermission("portfolios", "update"),
+  upload.single("photo"),
   portfolioController.updatePortfolio
 );
-//delete Portfolio
+
 router.delete(
   "/portfolio/:id",
   authMiddleware,
