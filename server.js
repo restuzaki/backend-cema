@@ -16,7 +16,7 @@ const portfolioRoutes = require("./routes/portfolioRoute");
 const userRoutes = require("./routes/userRoute");
 const startChatBot = require("./services/chatService");
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+const serviceAccount = require("./cema-web-firebase-adminsdk-fbsvc-7db7e59049.json");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
