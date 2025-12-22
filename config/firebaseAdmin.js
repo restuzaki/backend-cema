@@ -1,6 +1,6 @@
 // src/config/firebaseAdmin.js
 const admin = require("firebase-admin");
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+const serviceAccount = require("../cema-web-firebase-adminsdk-fbsvc-7db7e59049.json");
 
 if (!admin.apps.length) {
   admin.initializeApp({
