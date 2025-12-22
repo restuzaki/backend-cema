@@ -3,36 +3,46 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const ROLES = require("../config/roles");
 const loginService = require("../services/loginService");
-
+  
 exports.register = async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.json({
-      status: "error",
-      error: "Email dan Password harus diisi",
-    });
-  }
-
   try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.json({ status: "error", error: "Email sudah terdaftar" });
+        const { name, phoneNumber, email, password } = req.body;
+
+        // 1. Check if user already exists
+        const userExists = await User.findOne({ email });
+        if (userExists) {
+            return res.status(400).json({ message: "Email already registered" });
+        }
+
+        // 2. Hash the password for security
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // 3. Create and save user to database
+        const newUser = new User({
+            name,
+            phoneNumber,
+            email,
+            password: hashedPassword,
+        });
+
+        await newUser.save();
+
+        // 4. Send success response
+        res.status(201).json({
+          status: "success",
+          message: "User registered successfully",
+          user: {
+            id: newUser._id,
+            email: newUser.email,
+            role: newUser.role || null
+          }
+        });
+
+    } catch (error) {
+        console.error("Registration error:", error);
+        res.status(500).json({ message: "Server error during registration" });
     }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({
-      email,
-      password: hashedPassword,
-      role: ROLES.CLIENT,
-    });
-
-    console.log(`User baru terdaftar: ${email}`);
-    res.json({ status: "success", message: "Registrasi berhasil" });
-  } catch (error) {
-    console.error(error);
-    res.json({ status: "error", error: "Terjadi kesalahan server" });
-  }
 };
 
 exports.login = async (req, res) => {
