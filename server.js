@@ -16,6 +16,8 @@ const calculatorRoutes = require("./routes/calculatorRoute");
 const serviceRoutes = require("./routes/serviceRoute");
 const portfolioRoutes = require("./routes/portfolioRoute");
 const userRoutes = require("./routes/userRoute");
+const contactRoutes = require("./routes/contactRoute");
+const chatRoutes = require("./routes/chatRoute");
 
 // SERVICES
 const startChatBot = require("./services/chatService");
@@ -47,6 +49,9 @@ app.use("/api", calculatorRoutes);
 app.use("/api", serviceRoutes);
 app.use("/api", portfolioRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api", contactRoutes);
+app.use("/api", authRoutes);
+app.use("/api/chats", chatRoutes);
 
 // SERVICES
 startChatBot(db);
