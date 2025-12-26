@@ -56,6 +56,13 @@ app.use("/api/chats", chatRoutes);
 // SERVICES
 startChatBot(db);
 
+// ========================================
+// GLOBAL ERROR HANDLER
+// ========================================
+// MUST be the last middleware (after all routes)
+const errorHandler = require("./middleware/errorMiddleware");
+app.use(errorHandler);
+
 // SERVER
 app.listen(PORT, () => {
   console.log(`🚀 API Server berjalan di http://localhost:${PORT}`);

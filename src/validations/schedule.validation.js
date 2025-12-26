@@ -65,7 +65,7 @@ const createScheduleSchema = z.discriminatedUnion("booking_type", [
       })
       .optional()
       .nullable(),
-    link: z.string().url().optional().nullable(),
+    link: z.url().optional().nullable(),
 
     // Scenario Specific
     clientName: z.string().min(1, "Client Name is required"),

@@ -22,7 +22,7 @@ exports.googleLogin = async (idToken) => {
     user = await User.create({
       email,
       googleId: uid,
-      name,
+      name: name || "User",
       profilePicture: picture,
       password: hashedPassword, // Password random untuk keamanan skema
       role: ROLES.CLIENT,
@@ -40,9 +40,10 @@ exports.googleLogin = async (idToken) => {
   return {
     status: "success",
     message: "Login berhasil",
-    token: appToken,
-    role: user.role,
-    id: user._id,
+    data: {
+      user,
+      token: appToken,
+    },
   };
 };
 
