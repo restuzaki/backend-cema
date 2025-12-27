@@ -3,6 +3,7 @@ const Project = require("../models/project");
 const ServiceSchema = require("../models/serviceSchema");
 const { ACCESS_RULES } = require("../policies/abacPolicies");
 const ROLES = require("../config/roles");
+const AppError = require("../utils/AppError");
 
 function injectProjectPermissions(userId, userRole) {
   const userIdStr = String(userId);
@@ -108,7 +109,13 @@ exports.getAllProjects = async (user) => {
     pipeline.push({ $project: { financials: 0, team_members: 0 } });
   }
 
-  return await Project.aggregate(pipeline);
+  const projects = await Project.aggregate(pipeline);
+
+  if (!projects) {
+    throw new AppError("Failed to fetch projects", 500);
+  }
+
+  return projects;
 };
 
 /**
@@ -147,7 +154,12 @@ exports.getProjectById = async (projectId, user) => {
   }
 
   const results = await Project.aggregate(pipeline);
-  return results[0] || null;
+
+  if (!results || results.length === 0) {
+    throw new AppError("Project not found", 404);
+  }
+
+  return results[0];
 };
 
 /**
@@ -156,10 +168,10 @@ exports.getProjectById = async (projectId, user) => {
  * @returns {Promise<Object>}
  */
 exports.createProject = async (projectData) => {
-  // 1. Fetch Service to get the Title
+  // 1. Validate that the service exists
   const service = await ServiceSchema.findById(projectData.serviceType);
   if (!service) {
-    throw new Error(`Service not found with ID: ${projectData.serviceType}`);
+    throw new AppError(`Invalid service type: Service not found`, 400);
   }
 
   const newProject = await Project.create({
@@ -172,6 +184,11 @@ exports.createProject = async (projectData) => {
       budget_total: projectData.budget || 0,
     },
   });
+
+  if (!newProject) {
+    throw new AppError("Failed to create project", 500);
+  }
+
   return newProject;
 };
 
@@ -182,7 +199,7 @@ exports.createProject = async (projectData) => {
  * @returns {Promise<Object>}
  */
 exports.updateProject = async (projectId, updateData) => {
-  return await Project.findOneAndUpdate(
+  const project = await Project.findOneAndUpdate(
     { id: projectId },
     { $set: updateData },
     {
@@ -190,6 +207,12 @@ exports.updateProject = async (projectId, updateData) => {
       runValidators: false,
     }
   );
+
+  if (!project) {
+    throw new AppError("Project not found", 404);
+  }
+
+  return project;
 };
 
 /**
@@ -198,5 +221,11 @@ exports.updateProject = async (projectId, updateData) => {
  * @returns {Promise<Object>}
  */
 exports.deleteProject = async (projectId) => {
-  return await Project.findOneAndDelete({ id: projectId });
+  const project = await Project.findOneAndDelete({ id: projectId });
+
+  if (!project) {
+    throw new AppError("Project not found", 404);
+  }
+
+  return project;
 };

@@ -1,155 +1,59 @@
 const projectService = require("../services/projectService");
+const catchAsync = require("../utils/catchAsync");
+const sendResponse = require("../utils/sendResponse");
 
-// Get all projects
-exports.getAllProjects = async (req, res) => {
-  try {
-    const projects = await projectService.getAllProjects(req.user);
+/**
+ * Get all projects
+ * Applies role-based filtering and permission injection
+ */
+exports.getAllProjects = catchAsync(async (request, response) => {
+  const projects = await projectService.getAllProjects(request.user);
 
-    res.json({
-      status: "success",
-      total: projects.length,
-      data: projects,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      status: "error",
-      error: "Failed to fetch projects",
-    });
-  }
-};
+  sendResponse(response, 200, null, projects, { total: projects.length });
+});
 
-// Get project by ID
-exports.getProjectById = async (req, res) => {
-  try {
-    const project = await projectService.getProjectById(
-      req.params.id,
-      req.user
-    );
+/**
+ * Get project by ID
+ * Enforces row-level security based on user role
+ */
+exports.getProjectById = catchAsync(async (request, response) => {
+  const project = await projectService.getProjectById(
+    request.params.id,
+    request.user
+  );
 
-    if (!project) {
-      return res.status(404).json({
-        status: "error",
-        message: "Project not found",
-      });
-    }
+  sendResponse(response, 200, null, project);
+});
 
-    res.json({
-      status: "success",
-      data: project,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      status: "error",
-      error: "Failed to fetch project",
-    });
-  }
-};
+/**
+ * Create new project
+ * Validation handled by middleware
+ */
+exports.createProject = catchAsync(async (request, response) => {
+  const newProject = await projectService.createProject(request.body);
 
-// Create new project
-exports.createProject = async (req, res) => {
-  const {
-    name,
-    description,
-    admin_id,
-    client_id,
-    clientName,
-    manager_id,
-    managerName,
-    team_members,
-    status,
-    serviceType,
-    location,
-    startDate,
-    endDate,
-    financials,
-    documents,
-  } = req.body;
+  sendResponse(response, 201, "Project created successfully", newProject);
+});
 
-  // Validate required fields (matching Schema)
-  const requiredFields = [
-    "name",
-    "admin_id",
-    "client_id",
-    "clientName",
-    "manager_id",
-    "managerName",
-    "serviceType",
-    "startDate",
-  ];
+/**
+ * Update project
+ * Validation handled by middleware
+ */
+exports.updateProject = catchAsync(async (request, response) => {
+  const project = await projectService.updateProject(
+    request.params.id,
+    request.body
+  );
 
-  const missingFields = requiredFields.filter((field) => !req.body[field]);
+  sendResponse(response, 200, "Project updated successfully", project);
+});
 
-  if (missingFields.length > 0) {
-    return res.status(400).json({
-      status: "error",
-      error: `Missing required fields: ${missingFields.join(", ")}`,
-    });
-  }
+/**
+ * Delete project
+ * Authorization checked by ABAC middleware
+ */
+exports.deleteProject = catchAsync(async (request, response) => {
+  await projectService.deleteProject(request.params.id);
 
-  try {
-    const newProject = await projectService.createProject(req.body);
-
-    res.status(201).json({
-      status: "success",
-      message: "Project created successfully",
-      data: newProject,
-    });
-  } catch (error) {
-    console.error("Create Project Error:", error);
-    res.status(500).json({
-      status: "error",
-      error: error.message,
-    });
-  }
-};
-
-exports.updateProject = async (req, res) => {
-  try {
-    const project = await projectService.updateProject(req.params.id, req.body);
-
-    if (!project) {
-      return res.status(404).json({
-        status: "error",
-        message: "Project tidak ditemukan",
-      });
-    }
-
-    res.json({
-      status: "success",
-      message: "Project updated successfully",
-      data: project,
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "error",
-      error: error.message,
-    });
-  }
-};
-
-// Delete project
-exports.deleteProject = async (req, res) => {
-  try {
-    const project = await projectService.deleteProject(req.params.id);
-
-    if (!project) {
-      return res.status(404).json({
-        status: "error",
-        message: "Project not found",
-      });
-    }
-
-    res.json({
-      status: "success",
-      message: "Project deleted successfully",
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      status: "error",
-      error: "Failed to delete project",
-    });
-  }
-};
+  sendResponse(response, 200, "Project deleted successfully");
+});
