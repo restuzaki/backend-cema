@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs"); // For hashing password
 const { hasPermission } = require("../policies/abacPolicies");
+const ROLES = require("../config/roles");
 
 // Helper to filter sensitive data from response
 const sanitizeUser = (user) => {
@@ -115,15 +116,19 @@ exports.updateUser = async (req, res) => {
 
     // Allowed updates
     // Prevent updating 'role' if not Admin?
-    const { email, password, role, ...otherData } = req.body;
+    const { email, password, role, name, phoneNumber, profilePicture } =
+      req.body;
 
     if (email) targetUser.email = email;
     if (password) {
       targetUser.password = await bcrypt.hash(password, 10);
     }
+    if (name) targetUser.name = name;
+    if (phoneNumber) targetUser.phoneNumber = phoneNumber;
+    if (profilePicture) targetUser.profilePicture = profilePicture;
 
     // Only Admin can update Role
-    if (role && req.user.role === "ADMIN") {
+    if (role && req.user.role === ROLES.ADMIN) {
       targetUser.role = role;
     }
 
