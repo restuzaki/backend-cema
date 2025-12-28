@@ -18,6 +18,8 @@ const portfolioRoutes = require("./routes/portfolioRoute");
 const userRoutes = require("./routes/userRoute");
 const contactRoutes = require("./routes/contactRoute");
 const chatRoutes = require("./routes/chatRoute");
+const timeLogRoutes = require("./routes/timeLogRoute");
+const expenseRoutes = require("./routes/expenseRoute");
 
 // SERVICES
 const startChatBot = require("./services/chatService");
@@ -52,6 +54,8 @@ app.use("/api/users", userRoutes);
 app.use("/api", contactRoutes);
 app.use("/api", authRoutes);
 app.use("/api/chats", chatRoutes);
+app.use("/api", timeLogRoutes);
+app.use("/api", expenseRoutes);
 
 // SERVICES
 startChatBot(db);

@@ -1,139 +1,53 @@
-const Task = require("../models/task");
+const taskService = require("../services/task.service");
+const catchAsync = require("../utils/catchAsync");
+const sendResponse = require("../utils/sendResponse");
 
-// Get tasks by project ID
-exports.getTasksByProjectId = async (req, res) => {
-  try {
-    const tasks = await Task.find({ projectId: req.params.projectId });
+/**
+ * Get a single task by ID
+ */
+exports.getTaskById = catchAsync(async (request, response) => {
+  const task = await taskService.getTaskById(request.params.id);
 
-    res.json({
-      status: "success",
-      total: tasks.length,
-      data: tasks,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      status: "error",
-      error: "Failed to fetch tasks for project",
-    });
-  }
-};
+  sendResponse(response, 200, null, task);
+});
 
-// Create new task
-exports.createTask = async (req, res) => {
-  const {
-    projectId,
-    title,
-    description,
-    status,
-    priority,
-    assignedTo,
-    dueDate,
-  } = req.body;
+/**
+ * Get tasks by project ID with pagination
+ */
+exports.getTasksByProject = catchAsync(async (request, response) => {
+  const result = await taskService.getTasksByProject(
+    request.params.projectId,
+    request.query
+  );
 
-  // Validate required fields
-  if (!projectId || !title) {
-    return res.status(400).json({
-      status: "error",
-      error: "Required fields: projectId, title",
-    });
-  }
+  sendResponse(response, 200, null, result.data, result.pagination);
+});
 
-  try {
-    // Check if task with same ID already exists
-    const existingTask = await Task.findOne({ id });
-    if (existingTask) {
-      return res.status(400).json({
-        status: "error",
-        error: "Task with this ID already exists",
-      });
-    }
+/**
+ * Create a new task
+ * Validation handled by middleware
+ */
+exports.createTask = catchAsync(async (request, response) => {
+  const newTask = await taskService.createTask(request.body, request.user.id);
 
-    const newTask = await Task.create({
-      id: `TASK-${Date.now()}`,
-      projectId,
-      title,
-      description,
-      status: status || "To Do",
-      priority: priority || "Medium",
-      assignedTo,
-      dueDate,
-    });
+  sendResponse(response, 201, "Task created successfully", newTask);
+});
 
-    res.status(201).json({
-      status: "success",
-      message: "Task created successfully",
-      data: newTask,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      status: "error",
-      error: "Failed to create task",
-    });
-  }
-};
+/**
+ * Update a task
+ * Validation handled by middleware
+ */
+exports.updateTask = catchAsync(async (request, response) => {
+  const task = await taskService.updateTask(request.params.id, request.body);
 
-// Update task
-exports.updateTask = async (req, res) => {
-  try {
-    const task = await Task.findOne({ id: req.params.id });
+  sendResponse(response, 200, "Task updated successfully", task);
+});
 
-    if (!task) {
-      return res.status(404).json({
-        status: "error",
-        message: "Task not found",
-      });
-    }
+/**
+ * Delete a task
+ */
+exports.deleteTask = catchAsync(async (request, response) => {
+  await taskService.deleteTask(request.params.id);
 
-    const { title, description, status, priority, assignedTo, dueDate } =
-      req.body;
-
-    // Update fields if provided
-    if (title !== undefined) task.title = title;
-    if (description !== undefined) task.description = description;
-    if (status !== undefined) task.status = status;
-    if (priority !== undefined) task.priority = priority;
-    if (assignedTo !== undefined) task.assignedTo = assignedTo;
-    if (dueDate !== undefined) task.dueDate = dueDate;
-
-    await task.save();
-
-    res.json({
-      status: "success",
-      message: "Task updated successfully",
-      data: task,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      status: "error",
-      error: "Failed to update task",
-    });
-  }
-};
-
-// Delete task
-exports.deleteTask = async (req, res) => {
-  try {
-    const task = await Task.findOneAndDelete({ id: req.params.id });
-
-    if (!task) {
-      return res.status(404).json({
-        status: "error",
-        message: "Task not found",
-      });
-    }
-
-    res.json({
-      status: "success",
-      message: "Task deleted successfully",
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      status: "error",
-      error: "Failed to delete task",
-    });
-  }
-};
+  sendResponse(response, 200, "Task deleted successfully");
+});

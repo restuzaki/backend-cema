@@ -2,6 +2,11 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const checkPermission = require("../middleware/abacMiddleware");
+const validate = require("../middleware/validateRequest");
+const {
+  createScheduleSchema,
+  updateScheduleSchema,
+} = require("../validations/schedule.validation");
 const scheduleController = require("../controllers/scheduleController");
 
 router.get(
@@ -22,6 +27,7 @@ router.post(
   "/schedules",
   authMiddleware,
   checkPermission("schedules", "create"),
+  validate(createScheduleSchema),
   scheduleController.createSchedule
 );
 
@@ -29,6 +35,7 @@ router.put(
   "/schedules/:id",
   authMiddleware,
   checkPermission("schedules", "update"),
+  validate(updateScheduleSchema),
   scheduleController.updateSchedule
 );
 

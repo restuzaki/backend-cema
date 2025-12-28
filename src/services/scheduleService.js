@@ -4,6 +4,7 @@ const Project = require("../models/project");
 const ServiceSchema = require("../models/serviceSchema");
 const User = require("../models/User");
 const ROLES = require("../config/roles");
+const AppError = require("../utils/AppError");
 
 /**
  * Standard Schedule Creation (Scenario A)
@@ -11,12 +12,17 @@ const ROLES = require("../config/roles");
  * @param {Object} data - Schedule data
  * @returns {Promise<Object>} Created Schedule
  */
-exports.createSchedule = async (data) => {
+exports.createSchedule = async (scheduleData) => {
   const newSchedule = await Schedule.create({
     id: `SCH-${Date.now()}`,
-    ...data,
+    ...scheduleData,
     status: "UPCOMING",
   });
+
+  if (!newSchedule) {
+    throw new AppError("Failed to create schedule", 500);
+  }
+
   return newSchedule;
 };
 
@@ -37,12 +43,13 @@ exports.createScheduleWithNewProject = async (
   session.startTransaction();
 
   try {
-    // 1. Fetch Service to get Title
+    // 1. Validate Service Exists
     const service = await ServiceSchema.findById(
       projectData.serviceType
     ).session(session);
+
     if (!service) {
-      throw new Error(`Service not found with ID: ${projectData.serviceType}`);
+      throw new AppError(`Invalid service type: Service not found`, 400);
     }
 
     // 2. Find Default Admin/Manager (Required by Schema)
@@ -50,9 +57,15 @@ exports.createScheduleWithNewProject = async (
     const defaultAdmin = await User.findOne({ role: ROLES.ADMIN }).session(
       session
     );
+
+    const defaultManager = await User.findOne({
+      role: ROLES.PROJECT_MANAGER,
+    }).session(session);
+
     if (!defaultAdmin) {
-      throw new Error(
-        "System Error: No Admin found to assign to new Project LEAD."
+      throw new AppError(
+        "System configuration error: No Admin user found. Please contact support.",
+        500
       );
     }
 
@@ -70,8 +83,8 @@ exports.createScheduleWithNewProject = async (
           client_id: user.id,
           clientName: projectData.clientName || user.name,
 
-          manager_id: defaultAdmin._id, // Assign to Admin initially
-          managerName: defaultAdmin.name || "System Admin",
+          manager_id: defaultManager._id, // Assign to Admin initially
+          managerName: defaultManager.name || "System Admin",
 
           serviceType: service._id,
           serviceName: service.title,
@@ -129,6 +142,15 @@ exports.createScheduleWithNewProject = async (
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    throw error;
+
+    // Re-throw AppError as-is, wrap other errors
+    if (error instanceof AppError) {
+      throw error;
+    }
+
+    throw new AppError(
+      error.message || "Failed to create schedule and project",
+      500
+    );
   }
 };

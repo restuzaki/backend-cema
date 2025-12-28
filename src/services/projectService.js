@@ -194,11 +194,20 @@ exports.createProject = async (projectData) => {
 
 /**
  * Update a project
+ * If manager_id changes, also updates all related time_logs and expenses
  * @param {String} projectId
  * @param {Object} updateData
  * @returns {Promise<Object>}
  */
 exports.updateProject = async (projectId, updateData) => {
+  // Get old project to check if manager changed
+  const oldProject = await Project.findOne({ id: projectId });
+
+  if (!oldProject) {
+    throw new AppError("Project not found", 404);
+  }
+
+  // Update the project
   const project = await Project.findOneAndUpdate(
     { id: projectId },
     { $set: updateData },
@@ -208,8 +217,25 @@ exports.updateProject = async (projectId, updateData) => {
     }
   );
 
-  if (!project) {
-    throw new AppError("Project not found", 404);
+  // If manager_id changed, sync to all related time_logs and expenses
+  if (
+    updateData.manager_id &&
+    oldProject.manager_id.toString() !== updateData.manager_id.toString()
+  ) {
+    const TimeLog = require("../models/TimeLog");
+    const Expense = require("../models/Expense");
+
+    // Bulk update all time logs for this project
+    await TimeLog.updateMany(
+      { project_id: project._id },
+      { $set: { manager_id: updateData.manager_id } }
+    );
+
+    // Bulk update all expenses for this project
+    await Expense.updateMany(
+      { project_id: project._id },
+      { $set: { manager_id: updateData.manager_id } }
+    );
   }
 
   return project;

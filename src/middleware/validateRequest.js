@@ -23,14 +23,13 @@ const validate = (zodSchema) => {
 
     if (!validationResult.success) {
       // Transform Zod errors into readable format
-      const validationErrors = validationResult.error.errors.map(
-        (zodError) => ({
+      const validationErrors =
+        validationResult.error?.errors?.map((zodError) => ({
           // Convert path array to dot notation: ["location", "lat"] → "location.lat"
           field: zodError.path.join("."),
           message: zodError.message,
           code: zodError.code,
-        })
-      );
+        })) || [];
 
       // Throw AppError with validation details
       return next(

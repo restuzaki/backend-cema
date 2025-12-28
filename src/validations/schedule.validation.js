@@ -1,4 +1,5 @@
 const { z } = require("zod");
+const SCHEDULE_STATUS = require("../config/scheduleStatus");
 
 /**
  * Zod Schema for Schedule Scheduling
@@ -32,7 +33,7 @@ const createScheduleSchema = z.discriminatedUnion("booking_type", [
       })
       .optional()
       .nullable(),
-    link: z.string().url().optional().nullable(),
+    link: z.url().optional().nullable(),
 
     // Scenario Specific
     project_id: z.string().min(1, "Project ID is required"),
@@ -74,4 +75,42 @@ const createScheduleSchema = z.discriminatedUnion("booking_type", [
   }),
 ]);
 
-module.exports = { createScheduleSchema };
+/**
+ * Update Schedule Schema
+ * All fields are optional for partial updates
+ */
+const updateScheduleSchema = z.object({
+  date: z.coerce.date().optional(),
+  time: z
+    .string()
+    .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)")
+    .optional(),
+  event: z.string().min(1, "Event title cannot be empty").optional(),
+  description: z.string().optional(),
+  status: z
+    .enum([
+      SCHEDULE_STATUS.UPCOMING,
+      SCHEDULE_STATUS.COMPLETED,
+      SCHEDULE_STATUS.CANCELLED,
+    ])
+    .optional(),
+  isOnline: z.boolean().optional(),
+  location: z
+    .object({
+      address: z.string().optional(),
+      coordinates: z
+        .object({
+          lat: z.number(),
+          lng: z.number(),
+        })
+        .optional(),
+    })
+    .optional()
+    .nullable(),
+  link: z.url().optional().nullable(),
+});
+
+module.exports = {
+  createScheduleSchema,
+  updateScheduleSchema,
+};

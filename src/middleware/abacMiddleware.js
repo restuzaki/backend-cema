@@ -7,6 +7,8 @@ const Material = require("../models/material");
 const CalculatorSettings = require("../models/calculatorSettings");
 const ServiceSchema = require("../models/serviceSchema");
 const Portfolio = require("../models/portfolio");
+const TimeLog = require("../models/TimeLog");
+const Expense = require("../models/Expense");
 
 const checkPermission = (resourceName, action) => {
   return async (req, res, next) => {
@@ -52,6 +54,12 @@ const checkPermission = (resourceName, action) => {
             case "portfolios":
               Model = Portfolio;
               break;
+            case "time_logs":
+              Model = TimeLog;
+              break;
+            case "expenses":
+              Model = Expense;
+              break;
           }
         } else if (bodyProjectId) {
           // Look up Parent Project for Creation context
@@ -83,7 +91,7 @@ const checkPermission = (resourceName, action) => {
         }
       } else if (clientIdParam) {
         // Mock data for Client List route to satisfy ABAC policy (user.id === project.client_id)
-        data = { client_id: clientIdParam };
+        data = { client_id: clientIdParam, manager_id: clientIdParam };
       }
 
       const isAllowed = hasPermission(user, resourceName, action, data);

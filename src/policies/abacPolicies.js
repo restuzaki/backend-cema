@@ -36,6 +36,8 @@ const POLICIES = {
     },
     services: { view: true, create: true, update: true, delete: true },
     portfolios: { view: true, create: true, update: true, delete: true },
+    time_logs: { view: true, create: true, update: true },
+    expenses: { view: true, create: true, update: true },
   },
   [ROLES.PROJECT_MANAGER]: {
     projects: {
@@ -80,6 +82,16 @@ const POLICIES = {
       delete: (user, target) => user.id === target.id,
     },
     portfolios: { view: true, create: false, update: false, delete: false },
+    time_logs: {
+      view: (user, timeLog) => timeLog.manager_id.toString() === user.id,
+      create: true,
+      update: (user, timeLog) => timeLog.manager_id.toString() === user.id,
+    },
+    expenses: {
+      view: (user, expense) => expense.manager_id.toString() === user.id,
+      create: true,
+      update: (user, expense) => expense.manager_id.toString() === user.id,
+    },
   },
   [ROLES.TEAM_MEMBER]: {
     projects: {
@@ -108,6 +120,16 @@ const POLICIES = {
     },
     services: { view: false, create: false, update: false, delete: false },
     portfolios: { view: true, create: false, update: false, delete: false },
+    time_logs: {
+      view: (user, timeLog) => timeLog.user_id.toString() === user.id,
+      create: true,
+      update: (user, timeLog) => timeLog.user_id.toString() === user.id,
+    },
+    expenses: {
+      view: (user, expense) => expense.user_id.toString() === user.id,
+      create: true,
+      update: (user, expense) => expense.user_id.toString() === user.id,
+    },
     users: {
       view: (user, target) => user.id === target.id,
       create: false,
@@ -143,6 +165,8 @@ const POLICIES = {
     },
     services: { view: false, create: false, update: false, delete: false },
     portfolios: { view: true, create: false, update: false, delete: false },
+    time_logs: { view: false, create: false, update: false },
+    expenses: { view: false, create: false, update: false },
   },
 };
 
