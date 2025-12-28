@@ -1,7 +1,0 @@
-const SCHEDULE_STATUS = {
-  UPCOMING: "UPCOMING",
-  DONE: "DONE",
-  CANCELLED: "CANCELLED",
-};
-
-module.exports = SCHEDULE_STATUS;
