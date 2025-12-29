@@ -96,7 +96,7 @@ exports.createTask = async (taskData, userId) => {
     status: taskData.status || "TODO",
     attachments: taskData.attachments || [],
     is_punch_item: taskData.is_punch_item || false,
-    approval: taskData.approval,
+    approval: taskData.approval || false,
   });
 
   if (!newTask) {

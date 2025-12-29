@@ -227,3 +227,81 @@ exports.updateExpense = async (expenseId, updateData, user) => {
 
   return expense;
 };
+
+/**
+ * Get all expenses by project ID with pagination
+ * @param {string} projectId - Project custom ID (e.g., PROJ-123)
+ * @param {object} query - Query filters {status, category, page, limit}
+ * @param {object} user - Authenticated user {id, role}
+ * @returns {Promise<object>} Paginated expenses with metadata
+ */
+exports.getExpensesByProjectId = async (projectId, query, user) => {
+  const PAGINATION = require("../config/pagination");
+
+  // Validate Project exists using CUSTOM ID
+  const project = await Project.findOne({ id: projectId });
+
+  if (!project) {
+    throw new AppError("Project not found", 404);
+  }
+
+  const filter = {
+    project_id: project._id,
+  };
+
+  // Role-based access control
+  if (user.role === ROLES.TEAM_MEMBER) {
+    // Staff can only see their own expenses
+    filter.user_id = new mongoose.Types.ObjectId(String(user.id));
+  }
+
+  // Apply optional filters
+  if (query.status) {
+    filter.status = query.status;
+  }
+
+  if (query.category) {
+    filter.category = query.category;
+  }
+
+  // Admin/PM can filter by specific user_id
+  if (
+    query.user_id &&
+    (user.role === ROLES.ADMIN || user.role === ROLES.PROJECT_MANAGER)
+  ) {
+    filter.user_id = new mongoose.Types.ObjectId(String(query.user_id));
+  }
+
+  // Parse pagination parameters
+  const page = parseInt(query.page) || PAGINATION.DEFAULT_PAGE;
+  const limit = Math.min(
+    parseInt(query.limit) || PAGINATION.DEFAULT_LIMIT,
+    PAGINATION.MAX_LIMIT
+  );
+  const skip = (page - 1) * limit;
+
+  // Get total count
+  const totalExpenses = await Expense.countDocuments(filter);
+  const totalPages = Math.ceil(totalExpenses / limit);
+
+  // Get paginated expenses
+  const expenses = await Expense.find(filter)
+    .populate("project_id", "id name")
+    .populate("user_id", "name email")
+    .populate("approved_by", "name email")
+    .skip(skip)
+    .limit(limit)
+    .sort({ createdAt: -1 });
+
+  return {
+    data: expenses,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      totalItems: totalExpenses,
+      itemsPerPage: limit,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+    },
+  };
+};

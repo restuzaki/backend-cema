@@ -34,6 +34,14 @@ router.get(
   expenseController.getAllExpenses
 );
 
+// Get expenses by project ID
+router.get(
+  "/expenses/project/:projectId",
+  authMiddleware,
+  checkPermission("expenses", "view"),
+  expenseController.getExpensesByProjectId
+);
+
 // Update expense (includes status updates)
 router.put(
   "/expenses/:id",

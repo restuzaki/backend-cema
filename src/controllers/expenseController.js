@@ -50,3 +50,17 @@ exports.updateExpense = catchAsync(async (request, response) => {
 
   sendResponse(response, 200, "Expense updated successfully", updatedExpense);
 });
+
+/**
+ * Get all expenses by project ID
+ * Query params: status, category, page, limit
+ */
+exports.getExpensesByProjectId = catchAsync(async (request, response) => {
+  const result = await expenseService.getExpensesByProjectId(
+    request.params.projectId,
+    request.query,
+    request.user
+  );
+
+  sendResponse(response, 200, null, result.data, result.pagination);
+});
