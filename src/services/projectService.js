@@ -146,6 +146,153 @@ exports.getProjectById = async (projectId, user) => {
       },
     },
     { $unwind: { path: "$serviceData", preserveNullAndEmptyArrays: true } },
+    // Lookup Tasks to calculate EV (Earned Value)
+    {
+      $lookup: {
+        from: "tasks",
+        localField: "_id",
+        foreignField: "project_id",
+        as: "tasks",
+      },
+    },
+    // Lookup Expenses to calculate AV (Actual Cost)
+    {
+      $lookup: {
+        from: "expenses",
+        localField: "_id",
+        foreignField: "project_id",
+        as: "expenses",
+      },
+    },
+    // Calculate Weighted EVM Metrics
+    {
+      $addFields: {
+        // BAC (Budget at Completion)
+        _bac: {
+          $ifNull: ["$financials.budget_total", 0],
+        },
+        // EV (Earned Value) - Sum of budget_allocation for DONE tasks
+        _ev: {
+          $reduce: {
+            input: "$tasks",
+            initialValue: 0,
+            in: {
+              $cond: {
+                if: {
+                  $and: [
+                    { $eq: ["$$this.status", "DONE"] },
+                    { $ifNull: ["$$this.budget_allocation", false] },
+                  ],
+                },
+                then: {
+                  $add: [
+                    "$$value",
+                    { $ifNull: ["$$this.budget_allocation", 0] },
+                  ],
+                },
+                else: "$$value",
+              },
+            },
+          },
+        },
+        // AV (Actual Cost) - Sum of approved expense amounts
+        _av: {
+          $reduce: {
+            input: "$expenses",
+            initialValue: 0,
+            in: {
+              $cond: {
+                if: { $eq: ["$$this.status", "APPROVED"] },
+                then: { $add: ["$$value", { $ifNull: ["$$this.amount", 0] }] },
+                else: "$$value",
+              },
+            },
+          },
+        },
+        // Time ratio for PV calculation: (Now - StartDate) / (EndDate - StartDate)
+        _timeRatio: {
+          $cond: {
+            if: {
+              $and: [
+                { $ne: ["$startDate", null] },
+                { $ne: ["$endDate", null] },
+                { $gt: ["$endDate", "$startDate"] },
+              ],
+            },
+            then: {
+              $let: {
+                vars: {
+                  elapsed: { $subtract: [new Date(), "$startDate"] },
+                  total: { $subtract: ["$endDate", "$startDate"] },
+                },
+                in: {
+                  $min: [
+                    1,
+                    {
+                      $cond: {
+                        if: { $gt: ["$$total", 0] },
+                        then: { $divide: ["$$elapsed", "$$total"] },
+                        else: 0,
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+            else: 0,
+          },
+        },
+      },
+    },
+    {
+      $addFields: {
+        // PV (Planned Value) - BAC * Time Ratio
+        _pv: { $multiply: ["$_bac", "$_timeRatio"] },
+        // Weighted Progress (%) - (EV / BAC) * 100
+        progress: {
+          $cond: {
+            if: { $gt: ["$_bac", 0] },
+            then: { $multiply: [{ $divide: ["$_ev", "$_bac"] }, 100] },
+            else: 0,
+          },
+        },
+        // Update financials object with EVM metrics
+        financials: {
+          budget_total: { $ifNull: ["$financials.budget_total", 0] },
+          value_earned: "$_ev",
+          cost_actual: "$_av",
+          value_planned: "$_pv",
+          // CPI (Cost Performance Index) - EV / AV
+          cpi: {
+            $cond: {
+              if: { $gt: ["$_av", 0] },
+              then: { $divide: ["$_ev", "$_av"] },
+              else: null,
+            },
+          },
+          // SPI (Schedule Performance Index) - EV / PV
+          spi: {
+            $cond: {
+              if: { $gt: ["$_pv", 0] },
+              then: { $divide: ["$_ev", "$_pv"] },
+              else: null,
+            },
+          },
+        },
+      },
+    },
+    // Clean up temporary fields
+    {
+      $project: {
+        tasks: 0,
+        expenses: 0,
+        _bac: 0,
+        _ev: 0,
+        _av: 0,
+        _pv: 0,
+        _timeRatio: 0,
+      },
+    },
     ...injectProjectPermissions(user.id, user.role),
   ];
 
