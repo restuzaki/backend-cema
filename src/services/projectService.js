@@ -4,6 +4,7 @@ const ServiceSchema = require("../models/serviceSchema");
 const { ACCESS_RULES } = require("../policies/abacPolicies");
 const ROLES = require("../config/roles");
 const AppError = require("../utils/AppError");
+const notificationService = require("./notificationService");
 
 function injectProjectPermissions(userId, userRole) {
   const userIdStr = String(userId);
@@ -334,6 +335,14 @@ exports.createProject = async (projectData) => {
 
   if (!newProject) {
     throw new AppError("Failed to create project", 500);
+  }
+
+  // Send notification to all admin users
+  try {
+    await notificationService.notifyAdminsNewProject(newProject);
+  } catch (error) {
+    console.error("Failed to send notification:", error);
+    // Don't fail the request if notification fails
   }
 
   return newProject;

@@ -8,8 +8,8 @@ const UserSchema = new mongoose.Schema({
   },
   googleId: {
     type: String,
-    unique: true, 
-    sparse: true, 
+    unique: true,
+    sparse: true,
   },
   password: {
     type: String,
@@ -32,6 +32,10 @@ const UserSchema = new mongoose.Schema({
     type: String,
     enum: ["client", "admin", "project_manager", "staff"],
     default: "client",
+  },
+  fcm_token: {
+    type: String,
+    default: null,
   },
   createdAt: {
     type: Date,

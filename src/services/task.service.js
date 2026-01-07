@@ -1,6 +1,7 @@
 const Task = require("../models/task");
 const Project = require("../models/project");
 const AppError = require("../utils/AppError");
+const notificationService = require("./notificationService");
 
 /**
  * Task Service
@@ -101,6 +102,14 @@ exports.createTask = async (taskData, userId) => {
 
   if (!newTask) {
     throw new AppError("Failed to create task", 500);
+  }
+
+  // Send notification to all admin users
+  try {
+    await notificationService.notifyAdminsNewTask(newTask, taskData.project_id);
+  } catch (error) {
+    console.error("Failed to send notification:", error);
+    // Don't fail the request if notification fails
   }
 
   return newTask;

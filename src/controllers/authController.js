@@ -12,7 +12,7 @@ exports.register = async (req, res) => {
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: "Email already registered" });
-    }
+    }    
 
     // 2. Hash the password for security
     const salt = await bcrypt.genSalt(10);
