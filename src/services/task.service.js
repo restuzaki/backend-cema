@@ -209,10 +209,7 @@ exports.getUpcomingTasks = async (user) => {
   }
   // Admins see all tasks (no additional filter)
 
-  const tasks = await Task.find(filter)
-    .populate("project_id", "id name")
-    .populate("assigned_to", "name email")
-    .sort({ due_date: 1 }); // Sort by due date ascending
+  const tasks = await Task.find(filter).sort({ due_date: 1 }); // Sort by due date ascending
 
   return tasks;
 };
