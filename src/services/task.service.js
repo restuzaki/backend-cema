@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Task = require("../models/task");
 const Project = require("../models/project");
 const AppError = require("../utils/AppError");
@@ -104,12 +105,18 @@ exports.createTask = async (taskData, userId) => {
     throw new AppError("Failed to create task", 500);
   }
 
-  // Send notification to all admin users
-  try {
-    await notificationService.notifyAdminsNewTask(newTask, taskData.project_id);
-  } catch (error) {
-    console.error("Failed to send notification:", error);
-    // Don't fail the request if notification fails
+  // Send notification to assigned staff members
+  if (taskData.assigned_to && taskData.assigned_to.length > 0) {
+    try {
+      await notificationService.notifyTaskAssignment(
+        newTask,
+        taskData.assigned_to,
+        taskData.project_id
+      );
+    } catch (error) {
+      console.error("Failed to send task assignment notification:", error);
+      // Don't fail the request if notification fails
+    }
   }
 
   return newTask;
@@ -135,6 +142,26 @@ exports.updateTask = async (taskId, updateData) => {
     throw new AppError("Task not found", 404);
   }
 
+  // Check if status changed to DONE - notify PM for approval
+  if (updateData.status === "DONE") {
+    try {
+      const taskWithProject = await Task.findOne({ id: taskId }).populate(
+        "project_id"
+      );
+
+      if (taskWithProject && taskWithProject.project_id) {
+        await notificationService.notifyTaskCompletion(
+          taskWithProject,
+          taskWithProject.project_id.manager_id,
+          taskWithProject.project_id.name
+        );
+      }
+    } catch (error) {
+      console.error("Failed to send task completion notification:", error);
+      // Don't fail the request if notification fails
+    }
+  }
+
   return task;
 };
 
@@ -151,4 +178,41 @@ exports.deleteTask = async (taskId) => {
   }
 
   return task;
+};
+
+/**
+ * Get upcoming tasks (due within 7 days and not DONE)
+ * @param {object} user - Authenticated user {id, role}
+ * @returns {Promise<Array>} List of upcoming tasks
+ */
+exports.getUpcomingTasks = async (user) => {
+  const ROLES = require("../config/roles");
+  const sevenDaysFromNow = new Date();
+  sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+
+  const filter = {
+    due_date: { $gte: new Date() },
+    status: { $ne: "DONE" },
+  };
+
+  // Role-based filtering
+  if (user.role === ROLES.PROJECT_MANAGER) {
+    // PM sees tasks from their projects
+    const Project = require("../models/project");
+    const projects = await Project.find({
+      manager_id: new mongoose.Types.ObjectId(String(user.id)),
+    }).select("_id");
+    filter.project_id = { $in: projects };
+  } else if (user.role === ROLES.TEAM_MEMBER) {
+    // Staff sees only their assigned tasks
+    filter.assigned_to = new mongoose.Types.ObjectId(String(user.id));
+  }
+  // Admins see all tasks (no additional filter)
+
+  const tasks = await Task.find(filter)
+    .populate("project_id", "id name")
+    .populate("assigned_to", "name email")
+    .sort({ due_date: 1 }); // Sort by due date ascending
+
+  return tasks;
 };

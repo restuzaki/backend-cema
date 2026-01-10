@@ -51,3 +51,52 @@ exports.deleteTask = catchAsync(async (request, response) => {
 
   sendResponse(response, 200, "Task deleted successfully");
 });
+
+/**
+ * Approve or reject a task completion
+ * This is a dedicated endpoint for PM to approve/reject completed tasks
+ * Uses the updateTask service method internally
+ */
+exports.approveTask = catchAsync(async (request, response) => {
+  const { is_approved, rejection_note } = request.body;
+
+  // Validate is_approved is provided
+  if (is_approved === undefined) {
+    return sendResponse(
+      response,
+      400,
+      "is_approved field is required (true or false)"
+    );
+  }
+
+  // Prepare update data
+  const updateData = {
+    approval: {
+      is_approved,
+      approved_by: request.user.id,
+      approved_at: is_approved ? new Date() : null,
+      rejection_note: is_approved ? null : rejection_note,
+    },
+  };
+
+  // Use existing updateTask service
+  const updatedTask = await taskService.updateTask(
+    request.params.id,
+    updateData
+  );
+
+  const message = is_approved
+    ? "Task approved successfully"
+    : "Task completion rejected";
+
+  sendResponse(response, 200, message, updatedTask);
+});
+
+/**
+ * Get upcoming tasks (due within 7 days and not DONE)
+ */
+exports.getUpcomingTasks = catchAsync(async (request, response) => {
+  const tasks = await taskService.getUpcomingTasks(request.user);
+
+  sendResponse(response, 200, `Found ${tasks.length} upcoming tasks`, tasks);
+});

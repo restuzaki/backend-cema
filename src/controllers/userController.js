@@ -116,8 +116,15 @@ exports.updateUser = async (req, res) => {
 
     // Allowed updates
     // Prevent updating 'role' if not Admin?
-    const { email, password, role, name, phoneNumber, profilePicture } =
-      req.body;
+    const {
+      email,
+      password,
+      role,
+      name,
+      phoneNumber,
+      profilePicture,
+      fcm_token,
+    } = req.body;
 
     if (email) targetUser.email = email;
     if (password) {
@@ -126,6 +133,7 @@ exports.updateUser = async (req, res) => {
     if (name) targetUser.name = name;
     if (phoneNumber) targetUser.phoneNumber = phoneNumber;
     if (profilePicture) targetUser.profilePicture = profilePicture;
+    if (fcm_token) targetUser.fcm_token = fcm_token;
 
     // Only Admin can update Role
     if (role && req.user.role === ROLES.ADMIN) {

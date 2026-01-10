@@ -5,6 +5,7 @@ const ServiceSchema = require("../models/serviceSchema");
 const User = require("../models/User");
 const ROLES = require("../config/roles");
 const AppError = require("../utils/AppError");
+const notificationService = require("./notificationService");
 
 /**
  * Standard Schedule Creation (Scenario A)
@@ -134,6 +135,15 @@ exports.createScheduleWithNewProject = async (
 
     await session.commitTransaction();
     session.endSession();
+
+    // Send notification to project manager about new project
+    try {
+      console.log("Sending notification for new project:", project.manager_id);
+      await notificationService.notifyNewProjects(project);
+    } catch (error) {
+      console.error("Failed to send notification:", error);
+      // Don't fail the request if notification fails
+    }
 
     // Return the schedule populated with project info
     return await Schedule.findById(createdSchedule[0]._id).populate(

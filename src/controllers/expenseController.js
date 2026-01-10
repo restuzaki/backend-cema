@@ -52,6 +52,38 @@ exports.updateExpense = catchAsync(async (request, response) => {
 });
 
 /**
+ * Approve or reject an expense
+ * This is a dedicated endpoint for PM/Admin to approve/reject expenses
+ * Uses the updateExpense service method internally
+ */
+exports.approveExpense = catchAsync(async (request, response) => {
+  const { status, rejection_note } = request.body;
+
+  // Validate status is either APPROVED or REJECTED
+  if (status !== "APPROVED" && status !== "REJECTED") {
+    return sendResponse(
+      response,
+      400,
+      "Status must be either APPROVED or REJECTED"
+    );
+  }
+
+  // Use existing updateExpense service
+  const updatedExpense = await expenseService.updateExpense(
+    request.params.id,
+    { status, rejection_note },
+    request.user
+  );
+
+  const message =
+    status === "APPROVED"
+      ? "Expense approved successfully"
+      : "Expense rejected successfully";
+
+  sendResponse(response, 200, message, updatedExpense);
+});
+
+/**
  * Get all expenses by project ID
  * Query params: status, category, page, limit
  */
@@ -63,4 +95,18 @@ exports.getExpensesByProjectId = catchAsync(async (request, response) => {
   );
 
   sendResponse(response, 200, null, result.data, result.pagination);
+});
+
+/**
+ * Get pending expenses (awaiting approval)
+ */
+exports.getPendingExpenses = catchAsync(async (request, response) => {
+  const expenses = await expenseService.getPendingExpenses(request.user);
+
+  sendResponse(
+    response,
+    200,
+    `Found ${expenses.length} pending expenses`,
+    expenses
+  );
 });

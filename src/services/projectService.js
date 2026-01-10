@@ -87,20 +87,24 @@ exports.getAllProjects = async (user) => {
     matchStage.manager_id = new mongoose.Types.ObjectId(String(user.id));
   } else if (user.role === ROLES.CLIENT) {
     matchStage.client_id = new mongoose.Types.ObjectId(String(user.id));
+  } else if (user.role === ROLES.TEAM_MEMBER) {
+    matchStage.team_members = {
+      $in: [new mongoose.Types.ObjectId(String(user.id))],
+    };
   }
 
   const pipeline = [
     { $match: matchStage },
     // Lookup Service Data
-    {
-      $lookup: {
-        from: "serviceschemas",
-        localField: "serviceType",
-        foreignField: "_id",
-        as: "serviceData",
-      },
-    },
-    { $unwind: { path: "$serviceData", preserveNullAndEmptyArrays: true } },
+    // {
+    //   $lookup: {
+    //     from: "serviceschemas",
+    //     localField: "serviceType",
+    //     foreignField: "_id",
+    //     as: "serviceData",
+    //   },
+    // },
+    // { $unwind: { path: "$serviceData", preserveNullAndEmptyArrays: true } },
     // 2. Permission Injection
     ...injectProjectPermissions(user.id, user.role),
   ];
@@ -133,6 +137,10 @@ exports.getProjectById = async (projectId, user) => {
     matchStage.manager_id = new mongoose.Types.ObjectId(String(user.id));
   } else if (user.role === ROLES.CLIENT) {
     matchStage.client_id = new mongoose.Types.ObjectId(String(user.id));
+    // } else if (user.role === ROLES.TEAM_MEMBER) {
+    //   matchStage.team_members = {
+    //     $in: [new mongoose.Types.ObjectId(String(user.id))],
+    //   };
   }
 
   const pipeline = [
@@ -339,7 +347,8 @@ exports.createProject = async (projectData) => {
 
   // Send notification to all admin users
   try {
-    await notificationService.notifyAdminsNewProject(newProject);
+    console.log(newProject.manager_id);
+    await notificationService.notifyNewProjects(newProject);
   } catch (error) {
     console.error("Failed to send notification:", error);
     // Don't fail the request if notification fails

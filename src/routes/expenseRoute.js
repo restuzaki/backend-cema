@@ -34,12 +34,28 @@ router.get(
   expenseController.getAllExpenses
 );
 
+// Get pending expenses (awaiting approval)
+router.get(
+  "/expenses/pending",
+  authMiddleware,
+  checkPermission("expenses", "view"),
+  expenseController.getPendingExpenses
+);
+
 // Get expenses by project ID
 router.get(
   "/expenses/project/:projectId",
   authMiddleware,
   checkPermission("expenses", "view"),
   expenseController.getExpensesByProjectId
+);
+
+// Approve/Reject expense (must be before /expenses/:id to avoid route conflict)
+router.put(
+  "/expenses/:id/approve",
+  authMiddleware,
+  checkPermission("expenses", "approve"),
+  expenseController.approveExpense
 );
 
 // Update expense (includes status updates)

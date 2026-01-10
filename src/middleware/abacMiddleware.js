@@ -71,27 +71,38 @@ const checkPermission = (resourceName, action) => {
           data = await Model.findOne({ id: resourceId });
         }
 
-        if (!data) return res.status(404).json({ error: "Resource not found" });
-
-        data = data.toObject();
-
-        if (data._id) data.id = data._id.toString();
-        if (data.manager_id) data.manager_id = data.manager_id.toString();
-        if (data.client_id) data.client_id = data.client_id.toString();
-
-        if (data.assigned_to && Array.isArray(data.assigned_to)) {
-          data.assigned_to = data.assigned_to
-            .filter((id) => id != null)
-            .map((id) => id.toString());
+        // For create actions, we don't strictly need the resource to exist yet
+        // Only require data for update/delete/view actions
+        if (!data && action !== "create") {
+          return res.status(404).json({ error: "Resource not found" });
         }
-        if (data.team_members && Array.isArray(data.team_members)) {
-          data.team_members = data.team_members
-            .filter((id) => id != null)
-            .map((id) => id.toString());
+
+        if (data) {
+          data = data.toObject();
+
+          if (data._id) data.id = data._id.toString();
+          if (data.manager_id) data.manager_id = data.manager_id.toString();
+          if (data.client_id) data.client_id = data.client_id.toString();
+          if (data.user_id) data.user_id = data.user_id.toString();
+
+          if (data.assigned_to && Array.isArray(data.assigned_to)) {
+            data.assigned_to = data.assigned_to
+              .filter((id) => id != null)
+              .map((id) => id.toString());
+          }
+          if (data.team_members && Array.isArray(data.team_members)) {
+            data.team_members = data.team_members
+              .filter((id) => id != null)
+              .map((id) => id.toString());
+          }
         }
       } else if (clientIdParam) {
         // Mock data for Client List route to satisfy ABAC policy (user.id === project.client_id)
-        data = { client_id: clientIdParam, manager_id: clientIdParam };
+        data = {
+          client_id: clientIdParam,
+          manager_id: clientIdParam,
+          team_members: [clientIdParam],
+        };
       }
 
       const isAllowed = hasPermission(user, resourceName, action, data);

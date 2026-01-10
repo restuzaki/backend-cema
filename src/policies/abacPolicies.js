@@ -4,7 +4,7 @@ const ACCESS_RULES = {
   PROJECT: {
     EDIT: {
       [ROLES.ADMIN]: true,
-      [ROLES.PROJECT_MANAGER]: { owner_only: true, max_budget: 1000000 },
+      [ROLES.PROJECT_MANAGER]: { owner_only: true },
       [ROLES.TEAM_MEMBER]: false,
       [ROLES.CLIENT]: false,
     },
@@ -37,7 +37,7 @@ const POLICIES = {
     services: { view: true, create: true, update: true, delete: true },
     portfolios: { view: true, create: true, update: true, delete: true },
     time_logs: { view: true, create: true, update: true },
-    expenses: { view: true, create: true, update: true },
+    expenses: { view: true, create: true, update: true, approve: true },
   },
   [ROLES.PROJECT_MANAGER]: {
     projects: {
@@ -45,21 +45,21 @@ const POLICIES = {
       create: true,
       update: (user, project) => {
         const rule = ACCESS_RULES.PROJECT.EDIT[ROLES.PROJECT_MANAGER];
-        if (rule === true) return true;
-        if (!rule) return false;
+
+        console.log(rule);
+        console.log(project.manager_id);
+        console.log(user.id);
 
         const isOwner = !rule.owner_only || project.manager_id === user.id;
-        const withinBudget =
-          !rule.max_budget ||
-          (project.financials?.budget_total || 0) < rule.max_budget;
 
-        return isOwner && withinBudget;
+        return isOwner;
       },
     },
     tasks: {
       view: true,
       create: true,
-      approve: true, // Logic handled in middleware/controller to ensure ownership
+      update: true,
+      approve: true,
     },
     schedules: {
       view: (user, schedule) => schedule.manager_id === user.id,
@@ -91,6 +91,7 @@ const POLICIES = {
       view: (user, expense) => expense.manager_id.toString() === user.id,
       create: true,
       update: (user, expense) => expense.manager_id.toString() === user.id,
+      approve: true,
     },
   },
   [ROLES.TEAM_MEMBER]: {
@@ -126,9 +127,9 @@ const POLICIES = {
       update: (user, timeLog) => timeLog.user_id.toString() === user.id,
     },
     expenses: {
-      view: (user, expense) => expense.user_id.toString() === user.id,
+      view: true,
       create: true,
-      update: (user, expense) => expense.user_id.toString() === user.id,
+      update: (user, expense) => expense.user_id?.id.toString() === user.id,
     },
     users: {
       view: (user, target) => user.id === target.id,
