@@ -9,6 +9,9 @@ const checkPermission = require("../middleware/abacMiddleware");
 // For 'view', 'update', 'delete', we might rely on the Controller to perform the granular ID check
 // because standard checkPermission middleware might not fetch the target resource automatically for "users".
 
+// Update FCM token for authenticated user
+router.post("/update-fcm-token", authMiddleware, userController.updateFcmToken);
+
 // 1. Get All Users (Admin Only)
 // Permission: users:view is true for Admin, function for others.
 // If it's a function (Own Only), they can't view ALL.

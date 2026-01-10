@@ -49,7 +49,16 @@ const ExpenseSchema = new Schema(
     approved_by: { type: Schema.Types.ObjectId, ref: "User" },
     approved_at: Date,
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: {
+      transform: function (doc, ret) {
+        // Don't transform the main _id since we have custom 'id' field
+        delete ret.__v;
+        return ret;
+      },
+    },
+  }
 );
 
 module.exports = mongoose.model("Expense", ExpenseSchema);

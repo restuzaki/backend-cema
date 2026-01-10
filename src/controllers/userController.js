@@ -116,8 +116,15 @@ exports.updateUser = async (req, res) => {
 
     // Allowed updates
     // Prevent updating 'role' if not Admin?
-    const { email, password, role, name, phoneNumber, profilePicture } =
-      req.body;
+    const {
+      email,
+      password,
+      role,
+      name,
+      phoneNumber,
+      profilePicture,
+      fcm_token,
+    } = req.body;
 
     if (email) targetUser.email = email;
     if (password) {
@@ -126,6 +133,7 @@ exports.updateUser = async (req, res) => {
     if (name) targetUser.name = name;
     if (phoneNumber) targetUser.phoneNumber = phoneNumber;
     if (profilePicture) targetUser.profilePicture = profilePicture;
+    if (fcm_token) targetUser.fcm_token = fcm_token;
 
     // Only Admin can update Role
     if (role && req.user.role === ROLES.ADMIN) {
@@ -166,6 +174,42 @@ exports.deleteUser = async (req, res) => {
     res.json({
       status: "success",
       message: "User deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: error.message });
+  }
+};
+
+// 6. Update FCM Token
+exports.updateFcmToken = async (req, res) => {
+  try {
+    const { fcm_token } = req.body;
+
+    if (!fcm_token) {
+      return res.status(400).json({
+        status: "error",
+        message: "FCM token is required",
+      });
+    }
+
+    // Update the authenticated user's FCM token
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { fcm_token },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      status: "success",
+      message: "FCM token updated successfully",
+      data: { fcm_token: user.fcm_token },
     });
   } catch (error) {
     res.status(500).json({ status: "error", message: error.message });

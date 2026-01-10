@@ -4,6 +4,7 @@ const Project = require("../models/project");
 const AppError = require("../utils/AppError");
 const APPROVAL_STATUS = require("../config/approvalStatus");
 const ROLES = require("../config/roles");
+const notificationService = require("./notificationService");
 
 /**
  * Expense Service
@@ -55,6 +56,20 @@ exports.createExpense = async (expenseData, user) => {
 
   if (!newExpense) {
     throw new AppError("Failed to create expense", 500);
+  }
+
+  // Send notification to PM if staff creates expense (needs approval)
+  if (user.role === ROLES.TEAM_MEMBER && status === APPROVAL_STATUS.PENDING) {
+    try {
+      await notificationService.notifyExpenseSubmission(
+        newExpense,
+        project.manager_id,
+        project.name
+      );
+    } catch (error) {
+      console.error("Failed to send expense submission notification:", error);
+      // Don't fail the request if notification fails
+    }
   }
 
   return newExpense;
@@ -225,6 +240,37 @@ exports.updateExpense = async (expenseId, updateData, user) => {
 
   await expense.save();
 
+  // Send notification based on status change
+  if (updateData.status) {
+    try {
+      const expenseWithProject = await Expense.findOne({ id: expenseId })
+        .populate("project_id", "name")
+        .populate("user_id", "_id");
+
+      if (expenseWithProject && expenseWithProject.project_id) {
+        const projectName = expenseWithProject.project_id.name;
+        const staffId = expenseWithProject.user_id._id;
+
+        if (updateData.status === APPROVAL_STATUS.APPROVED) {
+          await notificationService.notifyExpenseApproval(
+            expenseWithProject,
+            staffId,
+            projectName
+          );
+        } else if (updateData.status === APPROVAL_STATUS.REJECTED) {
+          await notificationService.notifyExpenseRejection(
+            expenseWithProject,
+            staffId,
+            projectName
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Failed to send expense status notification:", error);
+      // Don't fail the request if notification fails
+    }
+  }
+
   return expense;
 };
 
@@ -304,4 +350,32 @@ exports.getExpensesByProjectId = async (projectId, query, user) => {
       hasPreviousPage: page > 1,
     },
   };
+};
+
+/**
+ * Get pending expenses (waiting for approval)
+ * @param {object} user - Authenticated user {id, role}
+ * @returns {Promise<Array>} List of pending expenses
+ */
+exports.getPendingExpenses = async (user) => {
+  const filter = {
+    status: APPROVAL_STATUS.PENDING,
+  };
+
+  // Role-based filtering
+  if (user.role === ROLES.PROJECT_MANAGER) {
+    // PM sees pending expenses from their projects
+    filter.manager_id = new mongoose.Types.ObjectId(String(user.id));
+  } else if (user.role === ROLES.TEAM_MEMBER) {
+    // Staff sees only their own pending expenses
+    filter.user_id = new mongoose.Types.ObjectId(String(user.id));
+  }
+  // Admins see all pending expenses (no additional filter)
+
+  const expenses = await Expense.find(filter)
+    .populate("project_id", "id name")
+    .populate("user_id", "name email")
+    .sort({ createdAt: -1 }); // Sort by creation date, newest first
+
+  return expenses;
 };

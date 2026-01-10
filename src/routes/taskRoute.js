@@ -9,6 +9,14 @@ const {
 } = require("../validations/task.validation");
 const taskController = require("../controllers/taskController");
 
+// Get upcoming tasks (due within 7 days, not done)
+router.get(
+  "/tasks/upcoming",
+  authMiddleware,
+  checkPermission("tasks", "view"),
+  taskController.getUpcomingTasks
+);
+
 // Get a single task by ID (must be before /tasks/project/:projectId to avoid conflict)
 router.get(
   "/tasks/:id",
@@ -32,6 +40,14 @@ router.post(
   checkPermission("tasks", "create"),
   validate(createTaskSchema),
   taskController.createTask
+);
+
+// Approve/Reject task completion (must be before /tasks/:id to avoid route conflict)
+router.put(
+  "/tasks/:id/approve",
+  authMiddleware,
+  checkPermission("tasks", "approve"),
+  taskController.approveTask
 );
 
 // Update a task

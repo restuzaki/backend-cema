@@ -4,6 +4,7 @@ const ServiceSchema = require("../models/serviceSchema");
 const { ACCESS_RULES } = require("../policies/abacPolicies");
 const ROLES = require("../config/roles");
 const AppError = require("../utils/AppError");
+const notificationService = require("./notificationService");
 
 function injectProjectPermissions(userId, userRole) {
   const userIdStr = String(userId);
@@ -86,20 +87,24 @@ exports.getAllProjects = async (user) => {
     matchStage.manager_id = new mongoose.Types.ObjectId(String(user.id));
   } else if (user.role === ROLES.CLIENT) {
     matchStage.client_id = new mongoose.Types.ObjectId(String(user.id));
+  } else if (user.role === ROLES.TEAM_MEMBER) {
+    matchStage.team_members = {
+      $in: [new mongoose.Types.ObjectId(String(user.id))],
+    };
   }
 
   const pipeline = [
     { $match: matchStage },
     // Lookup Service Data
-    {
-      $lookup: {
-        from: "serviceschemas",
-        localField: "serviceType",
-        foreignField: "_id",
-        as: "serviceData",
-      },
-    },
-    { $unwind: { path: "$serviceData", preserveNullAndEmptyArrays: true } },
+    // {
+    //   $lookup: {
+    //     from: "serviceschemas",
+    //     localField: "serviceType",
+    //     foreignField: "_id",
+    //     as: "serviceData",
+    //   },
+    // },
+    // { $unwind: { path: "$serviceData", preserveNullAndEmptyArrays: true } },
     // 2. Permission Injection
     ...injectProjectPermissions(user.id, user.role),
   ];
@@ -132,6 +137,10 @@ exports.getProjectById = async (projectId, user) => {
     matchStage.manager_id = new mongoose.Types.ObjectId(String(user.id));
   } else if (user.role === ROLES.CLIENT) {
     matchStage.client_id = new mongoose.Types.ObjectId(String(user.id));
+    // } else if (user.role === ROLES.TEAM_MEMBER) {
+    //   matchStage.team_members = {
+    //     $in: [new mongoose.Types.ObjectId(String(user.id))],
+    //   };
   }
 
   const pipeline = [
@@ -334,6 +343,15 @@ exports.createProject = async (projectData) => {
 
   if (!newProject) {
     throw new AppError("Failed to create project", 500);
+  }
+
+  // Send notification to all admin users
+  try {
+    console.log(newProject.manager_id);
+    await notificationService.notifyNewProjects(newProject);
+  } catch (error) {
+    console.error("Failed to send notification:", error);
+    // Don't fail the request if notification fails
   }
 
   return newProject;
